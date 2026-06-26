@@ -1,0 +1,30 @@
+{
+  "version": "0.3.0",
+  "files": [
+    {
+      "source": "src/awfan.ps1",
+      "destination": "awfan.ps1",
+      "sha256": "f6f9d37a72c7cd6ae3fa0c47495b7b93bae3e52d2b2fc60b1531b2853a087bf2"
+    },
+    {
+      "source": "src/awfan-broker.ps1",
+      "destination": "awfan-broker.ps1",
+      "sha256": "941da680ce0678eeb3a4f5368a4ad88b238fc8394a1f15b838ba33826dab8042"
+    },
+    {
+      "source": "src/awfan-updater.ps1",
+      "destination": "awfan-updater.ps1",
+      "sha256": "bd1ccd3ba8880b8e54ba3522d98f528798e5e2d1fb5742516f33d8b07469dec2"
+    },
+    {
+      "source": "bin/awfan.cmd",
+      "destination": "awfan.cmd",
+      "sha256": "4faf3fc8c20b0a08bab5f61c51d2a08205a4cb74be224482c4e3e27fffce3eb7"
+    },
+    {
+      "source": "VERSION",
+      "destination": "VERSION",
+      "sha256": "d915cc95d6ca8f47ae297713ed46d4e5c5d99ddd29fc3c61e263bdf305f2b5b0"
+    }
+  ]
+}
