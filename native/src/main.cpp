@@ -1,4 +1,5 @@
 #include "awfan/awcc_exact.hpp"
+#include "awfan/awcc_raw.hpp"
 #include "awfan/awcc_read.hpp"
 #include "awfan/wmi_probe.hpp"
 
@@ -10,19 +11,22 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.3.2-diagnostic\n\n"
+        << L"awfan-native 0.3.3-diagnostic\n\n"
         << L"Native Alienware WMI backend experiment.\n"
         << L"This build cannot change fan speeds, power profiles, TCC, G-Mode,\n"
         << L"XMP or any other hardware state.\n\n"
         << L"Usage:\n"
         << L"  awfan-native exact-probe\n"
+        << L"  awfan-native raw-probe\n"
         << L"  awfan-native status [--json]\n"
         << L"  awfan-native probe [options]\n"
         << L"  awfan-native inspect-awcc [--namespace <path>]\n"
         << L"  awfan-native version\n\n"
         << L"exact-probe:\n"
-        << L"  Performs one read-only system-ID call using the same COM security,\n"
-        << L"  input object, packed argument and instance flow as AlienFX Tools.\n\n"
+        << L"  Performs one read-only system-ID call using the confirmed AWCC flow.\n\n"
+        << L"raw-probe:\n"
+        << L"  Prints raw bytes for system ID, resource enumeration and current\n"
+        << L"  power profile so the AC16251 response encoding can be confirmed.\n\n"
         << L"status:\n"
         << L"  Reads power, fan and thermal information. This remains experimental.\n\n"
         << L"Probe options:\n"
@@ -37,6 +41,15 @@ int run_exact_probe_command() {
         return awfan::run_awcc_exact_probe();
     } catch (const std::exception& error) {
         std::cerr << "Exact AWCC probe failed: " << error.what() << '\n';
+        return 1;
+    }
+}
+
+int run_raw_probe_command() {
+    try {
+        return awfan::run_awcc_raw_probe();
+    } catch (const std::exception& error) {
+        std::cerr << "Raw AWCC probe failed: " << error.what() << '\n';
         return 1;
     }
 }
@@ -175,6 +188,10 @@ int wmain(int argc, wchar_t** argv) {
         return run_exact_probe_command();
     }
 
+    if (command == L"raw-probe") {
+        return run_raw_probe_command();
+    }
+
     if (command == L"status" || command == L"read-status") {
         return run_status_command(argc, argv);
     }
@@ -188,7 +205,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.3.2-diagnostic\n";
+        std::wcout << L"awfan-native 0.3.3-diagnostic\n";
         return 0;
     }
 
