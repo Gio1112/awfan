@@ -19,7 +19,9 @@ $files = @(
     "awfan.exe",
     "uninstall.ps1",
     "awfan-completion.ps1",
-    "README.txt"
+    "README.txt",
+    "CHANGELOG.txt",
+    "THIRD-PARTY-NOTICES.txt"
 )
 
 foreach ($file in $files) {
