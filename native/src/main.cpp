@@ -11,24 +11,26 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.3.5-diagnostic\n\n"
-        << L"Native Alienware WMI backend experiment.\n"
-        << L"This build cannot change fan speeds, power profiles, TCC, G-Mode,\n"
-        << L"XMP or any other hardware state.\n\n"
+        << L"awfan-native 0.4.0-readonly\n\n"
+        << L"Native Alienware AWCC WMI backend.\n"
+        << L"This build can read fan, temperature and power-profile information,\n"
+        << L"but cannot change fan speeds, power profiles, TCC, G-Mode, XMP or\n"
+        << L"any other hardware state.\n\n"
         << L"Usage:\n"
-        << L"  awfan-native exact-probe\n"
-        << L"  awfan-native raw-probe\n"
         << L"  awfan-native status [--json]\n"
+        << L"  awfan-native raw-probe\n"
+        << L"  awfan-native exact-probe\n"
         << L"  awfan-native probe [options]\n"
         << L"  awfan-native inspect-awcc [--namespace <path>]\n"
         << L"  awfan-native version\n\n"
-        << L"exact-probe:\n"
-        << L"  Performs one read-only system-ID call using the confirmed AWCC flow.\n\n"
-        << L"raw-probe:\n"
-        << L"  Enumerates firmware resources and reads fan, temperature and power\n"
-        << L"  values. Provider end-of-list failures are treated as terminators.\n\n"
         << L"status:\n"
-        << L"  Reads power, fan and thermal information. This remains experimental.\n\n"
+        << L"  Prints validated read-only fan RPM, maximum RPM, calculated fan\n"
+        << L"  percentage, firmware boost, temperatures and power-profile data.\n\n"
+        << L"raw-probe:\n"
+        << L"  Prints raw firmware responses for diagnostics. Provider end-of-list\n"
+        << L"  failures are treated as normal terminators.\n\n"
+        << L"exact-probe:\n"
+        << L"  Performs one read-only system-signature call.\n\n"
         << L"Probe options:\n"
         << L"  --namespace <path>  Probe one namespace instead of the defaults.\n"
         << L"  --all               Print every WMI class found.\n"
@@ -184,16 +186,16 @@ int wmain(int argc, wchar_t** argv) {
 
     const std::wstring command = argv[1];
 
-    if (command == L"exact-probe") {
-        return run_exact_probe_command();
+    if (command == L"status" || command == L"read-status") {
+        return run_status_command(argc, argv);
     }
 
     if (command == L"raw-probe") {
         return run_raw_probe_command();
     }
 
-    if (command == L"status" || command == L"read-status") {
-        return run_status_command(argc, argv);
+    if (command == L"exact-probe") {
+        return run_exact_probe_command();
     }
 
     if (command == L"probe") {
@@ -205,7 +207,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.3.5-diagnostic\n";
+        std::wcout << L"awfan-native 0.4.0-readonly\n";
         return 0;
     }
 
