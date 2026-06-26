@@ -34,6 +34,8 @@ install(FILES
     package/uninstall.ps1
     package/awfan-completion.ps1
     package/README.txt
+    package/CHANGELOG.txt
+    package/THIRD-PARTY-NOTICES.txt
     DESTINATION .
 )
 
