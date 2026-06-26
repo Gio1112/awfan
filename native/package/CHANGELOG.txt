@@ -1,0 +1,36 @@
+awfan 1.0.0
+===========
+
+Highlights
+----------
+- Native C++20 AWCC WMI backend with no AlienFan CLI runtime dependency.
+- Live fan RPM, nominal maximum RPM, temperatures, fan/sensor mappings,
+  current firmware profile, and profile discovery.
+- Human-readable and versioned JSON output.
+- Live watch and temperature modes.
+- Actual RPM trend detection using consecutive samples.
+- Known USTT profile reference for Balanced, Balanced Performance, Cool,
+  Quiet, and Performance.
+- Experimental native fan boost and profile controls protected by --yes.
+- User-level installer, uninstaller, PowerShell completion, portable ZIP,
+  and CI packaging.
+- Doctor and state inspection commands.
+
+Behavior correction from pre-release diagnostics
+------------------------------------------------
+Firmware boost values are not target fan percentages or target RPM values.
+Testing showed that boost value 80 can drive the tested AC16251 close to
+maximum fan speed. awfan therefore reports the raw commanded boost value and
+actual RPM trend instead of inventing a target RPM.
+
+Profile zero remains visible for diagnostics but is intentionally not accepted
+by the profile command because it did not reliably clear an existing boost.
+Profiles 1 through 5 clear manual boost values and return control to firmware.
+
+Known limitations
+-----------------
+- Direct firmware fan-percent reads return -2 on the tested system, so awfan
+  reports nominal RPM utilization from current RPM / nominal maximum RPM.
+- Live RPM may briefly exceed the firmware's reported nominal maximum.
+- Write support is validated only on Alienware 16X Aurora AC16251 and remains
+  experimental.
