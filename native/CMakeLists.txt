@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan_native VERSION 0.3.3 LANGUAGES CXX)
+project(awfan_native VERSION 0.3.4 LANGUAGES CXX)
 
 add_executable(awfan-native
     src/main.cpp
@@ -8,7 +8,7 @@ add_executable(awfan-native
     src/awcc_inspect.cpp
     src/awcc_read_v2.cpp
     src/awcc_exact.cpp
-    src/awcc_raw.cpp
+    src/awcc_raw_v2.cpp
 )
 
 target_compile_features(awfan-native PRIVATE cxx_std_20)
