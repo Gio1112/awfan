@@ -5,7 +5,6 @@
 #include <wrl/client.h>
 
 #include <array>
-#include <iomanip>
 #include <iostream>
 #include <new>
 #include <sstream>
@@ -135,6 +134,22 @@ std::wstring variant_to_string(const VARIANT& value) {
     }
 }
 
+bool variant_is_true(const VARIANT& value) {
+    if (value.vt == VT_BOOL) {
+        return value.boolVal == VARIANT_TRUE;
+    }
+
+    if (value.vt == VT_I4 || value.vt == VT_INT) {
+        return value.lVal != 0;
+    }
+
+    if (value.vt == VT_UI4 || value.vt == VT_UINT) {
+        return value.ulVal != 0;
+    }
+
+    return false;
+}
+
 ComPtr<IWbemServices> connect_namespace(
     IWbemLocator* locator,
     const std::wstring& namespace_path
@@ -199,6 +214,138 @@ void print_named_property(
     VariantClear(&value);
 }
 
+void print_qualifier(
+    IWbemQualifierSet* qualifiers,
+    const wchar_t* qualifier_name,
+    const wchar_t* indent = L"  "
+) {
+    VARIANT value;
+    VariantInit(&value);
+
+    const HRESULT result = qualifiers->Get(
+        qualifier_name,
+        0,
+        &value,
+        nullptr
+    );
+
+    if (SUCCEEDED(result) && value.vt != VT_NULL && value.vt != VT_EMPTY) {
+        std::wcout
+            << indent << qualifier_name << L": "
+            << variant_to_string(value) << L"\n";
+    }
+
+    VariantClear(&value);
+}
+
+bool qualifier_is_true(
+    IWbemQualifierSet* qualifiers,
+    const wchar_t* qualifier_name
+) {
+    VARIANT value;
+    VariantInit(&value);
+
+    const HRESULT result = qualifiers->Get(
+        qualifier_name,
+        0,
+        &value,
+        nullptr
+    );
+
+    const bool is_true = SUCCEEDED(result) && variant_is_true(value);
+    VariantClear(&value);
+    return is_true;
+}
+
+int inspect_class_definition(
+    IWbemServices* services,
+    const std::wstring& class_name
+) {
+    ScopedBstr class_path(class_name);
+    ComPtr<IWbemClassObject> class_definition;
+
+    const HRESULT get_result = services->GetObject(
+        class_path.get(),
+        0,
+        nullptr,
+        class_definition.GetAddressOf(),
+        nullptr
+    );
+
+    if (FAILED(get_result)) {
+        throw std::runtime_error("AWCC class definition could not be loaded");
+    }
+
+    std::wcout << L"[class definition]\n";
+    std::wcout << L"  object path: " << class_name << L"\n";
+
+    ComPtr<IWbemQualifierSet> class_qualifiers;
+    if (SUCCEEDED(class_definition->GetQualifierSet(class_qualifiers.GetAddressOf()))) {
+        print_qualifier(class_qualifiers.Get(), L"Dynamic");
+        print_qualifier(class_qualifiers.Get(), L"Provider");
+        print_qualifier(class_qualifiers.Get(), L"Singleton");
+    }
+
+    HRESULT result = class_definition->BeginMethodEnumeration(0);
+    if (FAILED(result)) {
+        throw std::runtime_error("AWCC methods could not be enumerated");
+    }
+
+    int static_method_count = 0;
+    std::wcout << L"\n[method qualifiers]\n";
+
+    while (true) {
+        BSTR method_name = nullptr;
+        IWbemClassObject* input_signature = nullptr;
+        IWbemClassObject* output_signature = nullptr;
+
+        result = class_definition->NextMethod(
+            0,
+            &method_name,
+            &input_signature,
+            &output_signature
+        );
+
+        if (result == WBEM_S_NO_MORE_DATA || result == WBEM_S_FALSE) {
+            break;
+        }
+
+        if (FAILED(result)) {
+            class_definition->EndMethodEnumeration();
+            throw std::runtime_error("AWCC method enumeration failed");
+        }
+
+        std::wcout << L"  " << method_name << L"\n";
+
+        ComPtr<IWbemQualifierSet> method_qualifiers;
+        if (SUCCEEDED(class_definition->GetMethodQualifierSet(
+                method_name,
+                method_qualifiers.GetAddressOf()
+            ))) {
+            if (qualifier_is_true(method_qualifiers.Get(), L"Static")) {
+                ++static_method_count;
+            }
+
+            print_qualifier(method_qualifiers.Get(), L"Static", L"    ");
+            print_qualifier(method_qualifiers.Get(), L"Implemented", L"    ");
+            print_qualifier(method_qualifiers.Get(), L"Bypass_GetObject", L"    ");
+            print_qualifier(method_qualifiers.Get(), L"Privileges", L"    ");
+        }
+
+        SysFreeString(method_name);
+
+        if (input_signature != nullptr) {
+            input_signature->Release();
+        }
+        if (output_signature != nullptr) {
+            output_signature->Release();
+        }
+    }
+
+    class_definition->EndMethodEnumeration();
+    return static_method_count;
+}
+
 void print_non_system_properties(IWbemClassObject* object) {
     HRESULT result = object->BeginEnumeration(WBEM_FLAG_NONSYSTEM_ONLY);
     if (FAILED(result)) {
@@ -248,27 +395,10 @@ void print_non_system_properties(IWbemClassObject* object) {
     object->EndEnumeration();
 }
 
-}  // namespace
-
-InstanceProbeSummary run_awcc_instance_probe(
+int enumerate_instances(
+    IWbemServices* services,
     const std::wstring& namespace_path
 ) {
-    ComRuntime runtime;
-
-    ComPtr<IWbemLocator> locator;
-    const HRESULT locator_result = CoCreateInstance(
-        CLSID_WbemLocator,
-        nullptr,
-        CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(locator.GetAddressOf())
-    );
-
-    if (FAILED(locator_result)) {
-        throw std::runtime_error("Could not create IWbemLocator");
-    }
-
-    const auto services = connect_namespace(locator.Get(), namespace_path);
-
     ScopedBstr query_language(L"WQL");
     ScopedBstr query(L"SELECT * FROM AWCCWmiMethodFunction");
     ComPtr<IEnumWbemClassObject> enumerator;
@@ -282,15 +412,12 @@ InstanceProbeSummary run_awcc_instance_probe(
     );
 
     if (FAILED(query_result)) {
-        std::ostringstream message;
-        message << "AWCC instance query failed";
-        throw std::runtime_error(message.str());
+        throw std::runtime_error("AWCC instance query failed");
     }
 
-    InstanceProbeSummary summary;
-
+    int instances_found = 0;
     std::wcout
-        << L"[" << namespace_path << L"\\AWCCWmiMethodFunction instances]\n";
+        << L"\n[" << namespace_path << L"\\AWCCWmiMethodFunction instances]\n";
 
     while (true) {
         ComPtr<IWbemClassObject> instance;
@@ -314,8 +441,8 @@ InstanceProbeSummary run_awcc_instance_probe(
             break;
         }
 
-        ++summary.instances_found;
-        std::wcout << L"\n[instance " << summary.instances_found << L"]\n";
+        ++instances_found;
+        std::wcout << L"\n[instance " << instances_found << L"]\n";
 
         static constexpr std::array<const wchar_t*, 7> properties{
             L"__PATH",
@@ -334,8 +461,50 @@ InstanceProbeSummary run_awcc_instance_probe(
         print_non_system_properties(instance.Get());
     }
 
+    return instances_found;
+}
+
+}  // namespace
+
+InstanceProbeSummary run_awcc_instance_probe(
+    const std::wstring& namespace_path
+) {
+    ComRuntime runtime;
+
+    ComPtr<IWbemLocator> locator;
+    const HRESULT locator_result = CoCreateInstance(
+        CLSID_WbemLocator,
+        nullptr,
+        CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(locator.GetAddressOf())
+    );
+
+    if (FAILED(locator_result)) {
+        throw std::runtime_error("Could not create IWbemLocator");
+    }
+
+    const auto services = connect_namespace(locator.Get(), namespace_path);
+
+    InstanceProbeSummary summary;
+    summary.class_found = true;
+    summary.static_methods = inspect_class_definition(
+        services.Get(),
+        L"AWCCWmiMethodFunction"
+    );
+    summary.instances_found = enumerate_instances(
+        services.Get(),
+        namespace_path
+    );
+
     if (summary.instances_found == 0) {
-        std::wcout << L"No AWCCWmiMethodFunction instances found.\n";
+        std::wcout << L"No instances found.\n";
+
+        if (summary.static_methods > 0) {
+            std::wcout
+                << L"This is expected: the provider exposes static class methods.\n"
+                << L"Future calls should use the class path "
+                << L"AWCCWmiMethodFunction rather than an instance path.\n";
+        }
     }
 
     return summary;
