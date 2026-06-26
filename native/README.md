@@ -22,4 +22,4 @@ Create the portable Windows ZIP:
 cmake --build build/native --config Release --target package
 ```
 
-The 1.0.0 release is packaged for Windows x64 and validated on the Alienware 16X Aurora AC16251.
+awfan 1.0.0 is packaged for Windows x64 and validated on the Alienware 16X Aurora AC16251.
