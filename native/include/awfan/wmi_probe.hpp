@@ -16,6 +16,11 @@ struct ProbeSummary {
     int matching_classes{0};
 };
 
+struct InstanceProbeSummary {
+    int instances_found{0};
+};
+
 ProbeSummary run_wmi_probe(const ProbeOptions& options);
+InstanceProbeSummary run_awcc_instance_probe(const std::wstring& namespace_path);
 
 }  // namespace awfan
