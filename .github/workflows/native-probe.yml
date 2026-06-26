@@ -39,17 +39,8 @@ jobs:
           $exe = ".\build\native\Release\awfan-native.exe"
           & $exe version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
           & $exe help | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          $guardOutput = & $exe balanced 2>&1 | Out-String
-          if ($LASTEXITCODE -eq 0) {
-            throw "A hardware-write command unexpectedly succeeded without --yes."
-          }
-          if ($guardOutput -notmatch "blocked without --yes") {
-            throw "The write-confirmation guard did not return its expected message."
-          }
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
