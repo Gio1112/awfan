@@ -27,7 +27,7 @@ void print_help() {
         << L"Control commands (experimental; --yes required):\n"
         << L"  awfan boost <cpu-value> <gpu-value> --yes [--json]\n"
         << L"  awfan max --yes [--json]\n"
-        << L"  awfan profile <0-5> --yes [--json]\n"
+        << L"  awfan profile <1-5> --yes [--json]\n"
         << L"  awfan auto <1-5> --yes [--json]\n\n"
         << L"Maintenance and diagnostics:\n"
         << L"  awfan clear-state\n"
@@ -39,12 +39,17 @@ void print_help() {
         << L"Important:\n"
         << L"  - boost values are firmware control inputs from 0 to 100. They are\n"
         << L"    not percentages and do not directly represent target RPM.\n"
+        << L"  - boost enters manual control. Use profile/auto 1-5 to clear the\n"
+        << L"    manual boost and return to dynamic firmware control.\n"
+        << L"  - firmware profile 0 is displayed for diagnostics but is not exposed\n"
+        << L"    as a standalone profile command because it does not reliably clear\n"
+        << L"    an existing manual boost on the tested system.\n"
         << L"  - status, fans and watch report actual RPM trend by comparing\n"
         << L"    consecutive samples: rising, falling or stable.\n"
         << L"  - reported maximum RPM is nominal. Live telemetry may briefly\n"
         << L"    exceed it.\n"
-        << L"  - profile 0 is manual mode. Profiles 1-5 map to discovered firmware\n"
-        << L"    profile IDs. Run 'awfan profiles' before changing profiles.\n"
+        << L"  - profiles 1-5 map to discovered firmware profile IDs. Run\n"
+        << L"    'awfan profiles' before changing profiles.\n"
         << L"  - every hardware write is blocked unless --yes is supplied.\n";
 }
 
@@ -287,15 +292,14 @@ int run_command(int argc, wchar_t** argv) {
     if (command == L"profile" || command == L"auto") {
         if (values.size() != 1) {
             throw std::runtime_error(
-                "Usage: awfan profile <0-5> --yes"
+                "Usage: awfan profile <1-5> --yes"
             );
         }
 
-        const int minimum = command == L"auto" ? 1 : 0;
         const int profile = parse_integer(
             values[0],
             L"profile index",
-            minimum,
+            1,
             5
         );
         return awfan::run_native_set_profile(
