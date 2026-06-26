@@ -1,3 +1,4 @@
+#include "awfan/awcc_read.hpp"
 #include "awfan/wmi_probe.hpp"
 
 #include <iostream>
@@ -8,13 +9,19 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.2.1-probe\n\n"
-        << L"Read-only discovery tool for Alienware WMI/ACPI interfaces.\n"
-        << L"This build cannot change fan speeds or power profiles.\n\n"
+        << L"awfan-native 0.3.0-readonly\n\n"
+        << L"Native Alienware WMI backend experiment.\n"
+        << L"This build can read firmware status but cannot change fan speeds,\n"
+        << L"power profiles, TCC, G-Mode, XMP or any other hardware state.\n\n"
         << L"Usage:\n"
+        << L"  awfan-native status [--json]\n"
         << L"  awfan-native probe [options]\n"
         << L"  awfan-native inspect-awcc [--namespace <path>]\n"
         << L"  awfan-native version\n\n"
+        << L"status:\n"
+        << L"  Reads the AWCC system ID, available power profiles, current power\n"
+        << L"  profile, fan RPM/maximum/percent/boost and firmware temperatures.\n"
+        << L"  Some systems require an Administrator terminal for WMI methods.\n\n"
         << L"Probe options:\n"
         << L"  --namespace <path>  Probe one namespace instead of the defaults.\n"
         << L"  --all               Print every WMI class found.\n"
@@ -26,6 +33,34 @@ void print_help() {
         << L"Defaults:\n"
         << L"  ROOT\\WMI and ROOT\\CIMV2 are scanned for AWCC, Alienware, Dell,\n"
         << L"  thermal, fan, sensor and WMI-method classes.\n";
+}
+
+int run_status_command(int argc, wchar_t** argv) {
+    bool json_output = false;
+
+    for (int i = 2; i < argc; ++i) {
+        const std::wstring argument = argv[i];
+
+        if (argument == L"--json") {
+            json_output = true;
+            continue;
+        }
+
+        if (argument == L"--help" || argument == L"-h") {
+            print_help();
+            return 0;
+        }
+
+        std::wcerr << L"Unknown status option: " << argument << L"\n";
+        return 2;
+    }
+
+    try {
+        return awfan::run_awcc_read_status(json_output);
+    } catch (const std::exception& error) {
+        std::cerr << "Native status failed: " << error.what() << '\n';
+        return 1;
+    }
 }
 
 int run_probe_command(int argc, wchar_t** argv) {
@@ -134,6 +169,10 @@ int wmain(int argc, wchar_t** argv) {
 
     const std::wstring command = argv[1];
 
+    if (command == L"status" || command == L"read-status") {
+        return run_status_command(argc, argv);
+    }
+
     if (command == L"probe") {
         return run_probe_command(argc, argv);
     }
@@ -143,7 +182,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.2.1-probe\n";
+        std::wcout << L"awfan-native 0.3.0-readonly\n";
         return 0;
     }
 
