@@ -11,7 +11,7 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.3.4-diagnostic\n\n"
+        << L"awfan-native 0.3.5-diagnostic\n\n"
         << L"Native Alienware WMI backend experiment.\n"
         << L"This build cannot change fan speeds, power profiles, TCC, G-Mode,\n"
         << L"XMP or any other hardware state.\n\n"
@@ -25,8 +25,8 @@ void print_help() {
         << L"exact-probe:\n"
         << L"  Performs one read-only system-ID call using the confirmed AWCC flow.\n\n"
         << L"raw-probe:\n"
-        << L"  Enumerates all firmware resources and reads fan, temperature and\n"
-        << L"  current power values as raw responses. No writes are performed.\n\n"
+        << L"  Enumerates firmware resources and reads fan, temperature and power\n"
+        << L"  values. Provider end-of-list failures are treated as terminators.\n\n"
         << L"status:\n"
         << L"  Reads power, fan and thermal information. This remains experimental.\n\n"
         << L"Probe options:\n"
@@ -205,7 +205,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.3.4-diagnostic\n";
+        std::wcout << L"awfan-native 0.3.5-diagnostic\n";
         return 0;
     }
 
