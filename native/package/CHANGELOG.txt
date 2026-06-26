@@ -9,6 +9,8 @@ Highlights
 - Human-readable and versioned JSON output.
 - Live watch and temperature modes.
 - Actual RPM trend detection using consecutive samples.
+- Known USTT profile reference for Balanced, Balanced Performance, Cool,
+  Quiet, and Performance.
 - Experimental native fan boost and profile controls protected by --yes.
 - User-level installer, uninstaller, PowerShell completion, portable ZIP,
   and CI packaging.
@@ -16,14 +18,17 @@ Highlights
 
 Behavior correction from pre-release diagnostics
 ------------------------------------------------
-Firmware boost values are not target percentages or target RPM values.
+Firmware boost values are not target fan percentages or target RPM values.
 Testing showed that boost value 80 can drive the tested AC16251 close to
 maximum fan speed. The release candidate therefore reports the raw commanded
 boost value and actual RPM trend instead of inventing a target RPM.
 
+Profile zero remains visible for diagnostics but is intentionally not accepted
+by the profile command because it did not reliably clear an existing boost.
+Profiles 1 through 5 clear manual boost values and return control to firmware.
+
 Known limitations
 -----------------
-- Firmware profile names are not yet mapped; IDs are shown directly.
 - Direct firmware fan-percent reads return -2 on the tested system, so awfan
   reports nominal RPM utilization from current RPM / nominal maximum RPM.
 - Live RPM may briefly exceed the firmware's reported nominal maximum.
