@@ -27,6 +27,7 @@ Read commands
    awfan temps [once|seconds] [--json]
    awfan watch [seconds]
    awfan profiles [--json]
+   awfan presets
    awfan doctor [--json]
    awfan state [--json]
 
@@ -39,12 +40,21 @@ Experimental control commands
 
 Every control command requires --yes.
 
-Boost values are raw firmware inputs from 0 to 100. They are not percentages
-and are not target RPM values. A boost command selects manual control. Use a
-discovered profile from 1 to 5 to return to dynamic firmware control.
+Boost values are firmware fan-boost inputs from 0 to 100. They are not target
+fan percentages and are not target RPM values. A boost command selects manual
+control. Use a discovered profile from 1 to 5 to return to dynamic firmware
+control.
 
-Profile 0 is shown by the profiles command for diagnostics but is intentionally
-not accepted by the profile command.
+Known profile names for the tested AC16251 are:
+
+   1  0xA0  Balanced
+   2  0xA1  Balanced Performance
+   3  0xA2  Cool
+   4  0xA3  Quiet
+   5  0xA4  Performance
+
+Run awfan profiles and awfan presets before changing profiles. Profile 0 is
+shown for diagnostics but is intentionally not accepted by the profile command.
 
 RPM trend
 ---------
