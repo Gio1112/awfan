@@ -56,6 +56,18 @@ foreach ($item in $mapping.GetEnumerator()) {
     Copy-Item (Join-Path $SourceRoot $item.Key) (Join-Path $InstallRoot $item.Value) -Force
 }
 
+# Remove launchers from the older ZIP-based installation. Keeping these files
+# beside alienfan-cli.exe can cause PowerShell to resolve the legacy client
+# before the current installation in Program Files.
+$legacyRoot = Split-Path -Parent $Backend
+foreach ($legacyName in @("awfan.ps1", "awfan.cmd")) {
+    $legacyPath = Join-Path $legacyRoot $legacyName
+    if (Test-Path -LiteralPath $legacyPath) {
+        Remove-Item -LiteralPath $legacyPath -Force
+        Write-Host "Removed legacy launcher: $legacyPath"
+    }
+}
+
 @{ backend = $Backend } | ConvertTo-Json |
     Set-Content (Join-Path $DataRoot "config.json") -Encoding utf8
 
@@ -77,10 +89,20 @@ $updateAction = New-ScheduledTaskAction -Execute $shell -Argument "-NoProfile -N
 $updateTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 15) -RepetitionDuration (New-TimeSpan -Days 3650)
 Register-ScheduledTask -TaskName $UpdaterTaskName -Action $updateAction -Trigger $updateTrigger -Principal $principal -Settings $settings -Force | Out-Null
 
-$userPath = [Environment]::GetEnvironmentVariable("Path","User")
-if (($userPath -split ";") -notcontains $InstallRoot) {
-    [Environment]::SetEnvironmentVariable("Path", (($userPath.TrimEnd(";") + ";" + $InstallRoot).TrimStart(";")), "User")
-}
+# Put the current launcher first and remove duplicate entries.
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$pathEntries = @(
+    $userPath -split ";" |
+        Where-Object {
+            -not [string]::IsNullOrWhiteSpace($_) -and
+            $_.TrimEnd("\\") -ine $InstallRoot.TrimEnd("\\")
+        }
+)
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    ((@($InstallRoot) + $pathEntries) -join ";"),
+    "User"
+)
 
 $commit = ""
 try { $commit = (& git -C $SourceRoot rev-parse HEAD 2>$null).Trim() } catch {}
