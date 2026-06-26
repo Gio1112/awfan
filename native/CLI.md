@@ -48,7 +48,9 @@ awfan auto 1 --yes
 
 Every hardware-changing command requires `--yes`.
 
-Boost values are firmware control inputs from 0 to 100. They are not fan percentages and are not target RPM values. Testing on the AC16251 showed that a value of 80 drove both fans close to maximum speed, so the CLI no longer presents boost values as target percentages.
+Boost values are firmware control inputs from 0 to 100. They are not fan percentages and are not target RPM values. Testing on the AC16251 showed that a value of 80 drove both fans close to maximum speed, so the CLI reports the raw commanded value and actual RPM trend instead of inventing a target RPM.
+
+A boost command enters manual control. Use `profile` or `auto` with one of the discovered indexes from 1 to 5 to clear the boost and return to dynamic firmware control. Firmware profile 0 remains visible in diagnostics but is intentionally not accepted as a profile command because it did not reliably clear an existing boost on the tested system.
 
 ## RPM trends
 
@@ -79,8 +81,12 @@ The ZIP contains:
 - `uninstall.ps1`
 - `awfan-completion.ps1`
 - `README.txt`
+- `CHANGELOG.txt`
+- `THIRD-PARTY-NOTICES.txt`
 
 `install.ps1` installs to `%LOCALAPPDATA%\Programs\awfan` and adds that directory to the current user's PATH. Administrator access is not required for installation.
+
+CI verifies the executable, package contents, extracted package executable, and SHA-256 checksum generation.
 
 ## Confirmed AC16251 resources
 
