@@ -33,6 +33,7 @@ awfan temps once
 awfan temps 2
 awfan watch 2
 awfan profiles
+awfan presets
 awfan doctor
 awfan state
 ```
@@ -48,9 +49,23 @@ awfan auto 1 --yes
 
 Every hardware-changing command requires `--yes`.
 
-Boost values are firmware control inputs from 0 to 100. They are not fan percentages and are not target RPM values. Testing on the AC16251 showed that a value of 80 drove both fans close to maximum speed, so the CLI reports the raw commanded value and actual RPM trend instead of inventing a target RPM.
+Boost values are firmware fan-boost inputs from 0 to 100. They are not target fan percentages and are not target RPM values. Testing on the AC16251 showed that a value of 80 drove both fans close to maximum speed, so the CLI reports the raw commanded boost value and actual RPM trend instead of inventing a target RPM.
 
 A boost command enters manual control. Use `profile` or `auto` with one of the discovered indexes from 1 to 5 to clear the boost and return to dynamic firmware control. Firmware profile 0 remains visible in diagnostics but is intentionally not accepted as a profile command because it did not reliably clear an existing boost on the tested system.
+
+## Known USTT profile names
+
+For the discovered AC16251 IDs:
+
+| Index | Raw ID | Name |
+| ---: | ---: | --- |
+| 1 | `0xA0` | Balanced |
+| 2 | `0xA1` | Balanced Performance |
+| 3 | `0xA2` | Cool |
+| 4 | `0xA3` | Quiet |
+| 5 | `0xA4` | Performance |
+
+The raw profile ID remains the source of truth. Run `awfan profiles` and `awfan presets` before changing profiles.
 
 ## RPM trends
 
@@ -86,7 +101,7 @@ The ZIP contains:
 
 `install.ps1` installs to `%LOCALAPPDATA%\Programs\awfan` and adds that directory to the current user's PATH. Administrator access is not required for installation.
 
-CI verifies the executable, package contents, extracted package executable, and SHA-256 checksum generation.
+CI verifies the executable, package contents, extracted package executable, temporary install/uninstall flow, and SHA-256 checksum generation.
 
 ## Confirmed AC16251 resources
 
