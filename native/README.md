@@ -1,6 +1,6 @@
 # awfan native CLI
 
-The native application is now documented in [`CLI.md`](CLI.md).
+The native application is documented in [`CLI.md`](CLI.md).
 
 Build:
 
@@ -22,4 +22,4 @@ Create the portable Windows ZIP:
 cmake --build build/native --config Release --target package
 ```
 
-The stable `main` branch remains untouched while the native release candidate is validated on `codex/native-backend-probe`.
+The 1.0.0 release is packaged for Windows x64 and validated on the Alienware 16X Aurora AC16251.
