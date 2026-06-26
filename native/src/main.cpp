@@ -1,3 +1,4 @@
+#include "awfan/awcc_exact.hpp"
 #include "awfan/awcc_read.hpp"
 #include "awfan/wmi_probe.hpp"
 
@@ -9,30 +10,35 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.3.1-readonly\n\n"
+        << L"awfan-native 0.3.2-diagnostic\n\n"
         << L"Native Alienware WMI backend experiment.\n"
-        << L"This build can read firmware status but cannot change fan speeds,\n"
-        << L"power profiles, TCC, G-Mode, XMP or any other hardware state.\n\n"
+        << L"This build cannot change fan speeds, power profiles, TCC, G-Mode,\n"
+        << L"XMP or any other hardware state.\n\n"
         << L"Usage:\n"
+        << L"  awfan-native exact-probe\n"
         << L"  awfan-native status [--json]\n"
         << L"  awfan-native probe [options]\n"
         << L"  awfan-native inspect-awcc [--namespace <path>]\n"
         << L"  awfan-native version\n\n"
+        << L"exact-probe:\n"
+        << L"  Performs one read-only system-ID call using the same COM security,\n"
+        << L"  input object, packed argument and instance flow as AlienFX Tools.\n\n"
         << L"status:\n"
-        << L"  Reads the AWCC system ID, available power profiles, current power\n"
-        << L"  profile, fan RPM/maximum/percent/boost and firmware temperatures.\n"
-        << L"  Some systems require an Administrator terminal for WMI methods.\n\n"
+        << L"  Reads power, fan and thermal information. This remains experimental.\n\n"
         << L"Probe options:\n"
         << L"  --namespace <path>  Probe one namespace instead of the defaults.\n"
         << L"  --all               Print every WMI class found.\n"
         << L"  --signatures        Print method input/output parameter names.\n"
-        << L"  --help              Show this help.\n\n"
-        << L"inspect-awcc:\n"
-        << L"  Inspects the AWCC class, method qualifiers and any instances.\n"
-        << L"  No firmware methods are invoked.\n\n"
-        << L"Defaults:\n"
-        << L"  ROOT\\WMI and ROOT\\CIMV2 are scanned for AWCC, Alienware, Dell,\n"
-        << L"  thermal, fan, sensor and WMI-method classes.\n";
+        << L"  --help              Show this help.\n";
+}
+
+int run_exact_probe_command() {
+    try {
+        return awfan::run_awcc_exact_probe();
+    } catch (const std::exception& error) {
+        std::cerr << "Exact AWCC probe failed: " << error.what() << '\n';
+        return 1;
+    }
 }
 
 int run_status_command(int argc, wchar_t** argv) {
@@ -107,11 +113,7 @@ int run_probe_command(int argc, wchar_t** argv) {
             << summary.matching_classes << L" matching class(es) across "
             << summary.namespaces_succeeded << L" namespace(s).\n";
 
-        if (summary.namespaces_succeeded == 0) {
-            return 1;
-        }
-
-        return 0;
+        return summary.namespaces_succeeded == 0 ? 1 : 0;
     } catch (const std::exception& error) {
         std::cerr << "Probe failed: " << error.what() << '\n';
         return 1;
@@ -169,6 +171,10 @@ int wmain(int argc, wchar_t** argv) {
 
     const std::wstring command = argv[1];
 
+    if (command == L"exact-probe") {
+        return run_exact_probe_command();
+    }
+
     if (command == L"status" || command == L"read-status") {
         return run_status_command(argc, argv);
     }
@@ -182,7 +188,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.3.1-readonly\n";
+        std::wcout << L"awfan-native 0.3.2-diagnostic\n";
         return 0;
     }
 
