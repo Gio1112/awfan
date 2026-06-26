@@ -4,14 +4,15 @@ This directory contains the first C++20 replacement for the external AlienFan-CL
 
 ## Current scope
 
-The `0.2.0-probe` build is deliberately **read-only**. It:
+The `0.2.1-probe` build is deliberately **read-only**. It:
 
 - connects to Windows WMI through COM;
 - scans `ROOT\\WMI` and `ROOT\\CIMV2`;
 - finds classes related to AWCC, Alienware, Dell, ACPI, fans, sensors and thermals;
 - lists the methods exposed by matching classes;
 - optionally lists method input and output parameters;
-- enumerates the concrete `AWCCWmiMethodFunction` instances and prints their WMI object paths and properties.
+- inspects AWCC class and method qualifiers;
+- checks for provider instances without requiring them.
 
 It cannot set fan speeds, change profiles, invoke AWCC methods or write hardware state.
 
@@ -53,17 +54,17 @@ Collect method signatures:
 .\\build\\native\\Release\\awfan-native.exe probe --namespace ROOT\\WMI --signatures
 ```
 
-Inspect the actual AWCC object instance without invoking any methods:
+Inspect AWCC class and method qualifiers without invoking anything:
 
 ```powershell
 .\\build\\native\\Release\\awfan-native.exe inspect-awcc
 ```
 
-The instance path from `inspect-awcc` is the final discovery item needed before implementing allowlisted read-only calls such as fan-sensor and thermal-information queries.
-
 ## Confirmed on the Alienware 16X Aurora AC16251
 
-The firmware exposes `AWCCWmiMethodFunction` in `ROOT\\WMI`. Relevant methods confirmed by the probe include:
+The firmware exposes `AWCCWmiMethodFunction` in `ROOT\\WMI`. It exposes no enumerable instances, which is valid for a provider implemented through static class methods. The next probe confirms each method's `Static` qualifier and uses the class path `AWCCWmiMethodFunction` as the future `ExecMethod` target.
+
+Relevant methods confirmed by the probe include:
 
 - `GetFanSensors(uint32 arg2) -> uint32 argr`
 - `Thermal_Information(uint32 arg2) -> uint32 argr`
@@ -76,7 +77,7 @@ No method invocation is enabled in this branch yet.
 
 ## Planned stages
 
-1. Read-only class, method and instance discovery.
+1. Read-only class, method and static-provider discovery.
 2. Allowlisted read-only sensor, RPM and power-profile queries.
 3. Carefully gated fan-boost writes with side-by-side validation against AlienFan-CLI.
 4. Replace the PowerShell broker with a native Windows service or restricted named-pipe broker.
