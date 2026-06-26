@@ -8,7 +8,7 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.2.0-probe\n\n"
+        << L"awfan-native 0.2.1-probe\n\n"
         << L"Read-only discovery tool for Alienware WMI/ACPI interfaces.\n"
         << L"This build cannot change fan speeds or power profiles.\n\n"
         << L"Usage:\n"
@@ -21,8 +21,8 @@ void print_help() {
         << L"  --signatures        Print method input/output parameter names.\n"
         << L"  --help              Show this help.\n\n"
         << L"inspect-awcc:\n"
-        << L"  Enumerates AWCCWmiMethodFunction instances and prints their WMI\n"
-        << L"  object paths and non-system properties. No methods are invoked.\n\n"
+        << L"  Inspects the AWCC class, method qualifiers and any instances.\n"
+        << L"  No firmware methods are invoked.\n\n"
         << L"Defaults:\n"
         << L"  ROOT\\WMI and ROOT\\CIMV2 are scanned for AWCC, Alienware, Dell,\n"
         << L"  thermal, fan, sensor and WMI-method classes.\n";
@@ -112,12 +112,14 @@ int run_inspect_awcc_command(int argc, wchar_t** argv) {
         const auto summary = awfan::run_awcc_instance_probe(namespace_path);
 
         std::wcout
-            << L"\nAWCC instance probe complete: "
-            << summary.instances_found << L" instance(s).\n";
+            << L"\nAWCC inspection complete: class="
+            << (summary.class_found ? L"found" : L"missing")
+            << L", static methods=" << summary.static_methods
+            << L", instances=" << summary.instances_found << L".\n";
 
-        return summary.instances_found > 0 ? 0 : 1;
+        return summary.class_found ? 0 : 1;
     } catch (const std::exception& error) {
-        std::cerr << "AWCC instance probe failed: " << error.what() << '\n';
+        std::cerr << "AWCC inspection failed: " << error.what() << '\n';
         return 1;
     }
 }
@@ -141,7 +143,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.2.0-probe\n";
+        std::wcout << L"awfan-native 0.2.1-probe\n";
         return 0;
     }
 
