@@ -1,0 +1,62 @@
+name: Release awfan 1.0.0
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'Release awfan 1.0.0')
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S native -B build/native -A x64
+
+      - name: Build
+        run: cmake --build build/native --config Release --parallel
+
+      - name: Smoke test
+        shell: pwsh
+        run: |
+          $exe = ".\build\native\Release\awfan.exe"
+          & $exe version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $exe help | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & $exe state --json | ConvertFrom-Json | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Create package
+        run: cmake --build build/native --config Release --target package
+
+      - name: Create SHA-256 checksum
+        shell: pwsh
+        run: |
+          $zip = Get-Item ".\build\native\awfan-1.0.0-windows-x64.zip"
+          $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
+          "$($hash.Hash.ToLower())  $($zip.Name)" |
+            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-windows-x64.sha256"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v1.0.0
+          target_commitish: ${{ github.sha }}
+          name: awfan 1.0.0
+          body_path: native/package/CHANGELOG.txt
+          draft: false
+          prerelease: false
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: |
+            build/native/awfan-1.0.0-windows-x64.zip
+            build/native/awfan-1.0.0-windows-x64.sha256
