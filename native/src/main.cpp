@@ -10,7 +10,7 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"0.5.0-experimental";
+constexpr wchar_t kVersion[] = L"0.5.1-experimental";
 
 void print_help() {
     std::wcout
@@ -36,6 +36,11 @@ void print_help() {
         << L"  awfan-native inspect-awcc [--namespace <path>]\n"
         << L"  awfan-native version\n\n"
         << L"Notes:\n"
+        << L"  - Manual boost commands save their requested percentages. Status,\n"
+        << L"    fans and watch then show estimated target RPM and whether each\n"
+        << L"    fan is above, below or near that target.\n"
+        << L"  - Target RPM is estimated from requested percent and maximum RPM;\n"
+        << L"    it is not a firmware-reported value.\n"
         << L"  - Profile 0 is manual control. Profiles 1-5 map to the firmware\n"
         << L"    profile IDs discovered on this machine.\n"
         << L"  - Run 'profiles' before changing profiles.\n"
