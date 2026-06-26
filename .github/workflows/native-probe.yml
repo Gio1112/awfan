@@ -50,7 +50,7 @@ jobs:
         shell: pwsh
         run: cmake --build build/native --config Release --target package
 
-      - name: Verify package and checksum
+      - name: Verify package, installer and checksum
         shell: pwsh
         run: |
           $zip = Get-Item ".\build\native\awfan-1.0.0-rc1-windows-x64.zip"
@@ -78,6 +78,18 @@ jobs:
 
           & (Join-Path $packageRoot.FullName "awfan.exe") version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          . (Join-Path $packageRoot.FullName "awfan-completion.ps1")
+
+          $installDir = Join-Path $env:RUNNER_TEMP "awfan-install-smoke"
+          & (Join-Path $packageRoot.FullName "install.ps1") -InstallDir $installDir -NoPath
+          & (Join-Path $installDir "awfan.exe") version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & (Join-Path $packageRoot.FullName "uninstall.ps1") -InstallDir $installDir -KeepState
+          if (Test-Path -LiteralPath $installDir) {
+            throw "The temporary installation directory still exists after uninstall."
+          }
 
           $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
           "$($hash.Hash.ToLower())  $($zip.Name)" |
