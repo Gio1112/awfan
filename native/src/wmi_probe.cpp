@@ -9,6 +9,7 @@
 #include <cwctype>
 #include <iomanip>
 #include <iostream>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -226,7 +227,7 @@ void print_methods(
     ScopedBstr class_path(class_name);
     ComPtr<IWbemClassObject> class_definition;
 
-    HRESULT result = services->Get(
+    HRESULT result = services->GetObject(
         class_path.get(),
         0,
         nullptr,
