@@ -53,7 +53,7 @@ jobs:
       - name: Verify package, installer and checksum
         shell: pwsh
         run: |
-          $zip = Get-Item ".\build\native\awfan-1.0.0-rc1-windows-x64.zip"
+          $zip = Get-Item ".\build\native\awfan-1.0.0-windows-x64.zip"
           $extract = ".\build\native\package-smoke"
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
 
@@ -93,7 +93,7 @@ jobs:
 
           $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
           "$($hash.Hash.ToLower())  $($zip.Name)" |
-            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-rc1-windows-x64.sha256"
+            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-windows-x64.sha256"
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
@@ -105,10 +105,10 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: awfan-1.0.0-rc1-windows-x64
+          name: awfan-1.0.0-windows-x64
           path: |
-            build/native/awfan-1.0.0-rc1-windows-x64.zip
-            build/native/awfan-1.0.0-rc1-windows-x64.sha256
+            build/native/awfan-1.0.0-windows-x64.zip
+            build/native/awfan-1.0.0-windows-x64.sha256
           if-no-files-found: error
 
       - name: Upload build log
