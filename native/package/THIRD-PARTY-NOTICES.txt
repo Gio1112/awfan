@@ -3,7 +3,7 @@ Third-party notices
 
 AlienFX Tools
 -------------
-awfan's AWCC command mapping and packed argument layout were independently
+awfan's packed AWCC argument layout and early method mapping were independently
 implemented using AlienFX Tools by T-Troll as a public protocol reference.
 
 Project: https://github.com/T-Troll/alienfx-tools
@@ -32,3 +32,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Linux Alienware WMAX WMI driver
+-------------------------------
+The upstream Linux Alienware WMAX WMI driver was used as an independent public
+reference for AWCC operation constants, resource IDs, USTT profile IDs, and
+confirmed support for the Alienware 16X Aurora platform.
+
+Project: https://github.com/torvalds/linux
+File: drivers/platform/x86/dell/alienware-wmi-wmax.c
+License: GPL-2.0-or-later
+
+No Linux kernel source or binary is bundled with awfan.
