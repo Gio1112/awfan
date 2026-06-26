@@ -10,41 +10,42 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"0.5.1-experimental";
+constexpr wchar_t kVersion[] = L"1.0.0-rc1";
 
 void print_help() {
     std::wcout
-        << L"awfan-native " << kVersion << L"\n\n"
+        << L"awfan " << kVersion << L"\n\n"
         << L"Native C++20 Alienware fan-control CLI.\n\n"
         << L"Read commands:\n"
-        << L"  awfan-native status [--json]\n"
-        << L"  awfan-native temps [seconds|once] [--json]\n"
-        << L"  awfan-native fans [--json]\n"
-        << L"  awfan-native profiles [--json]\n"
-        << L"  awfan-native watch [seconds]\n\n"
-        << L"Control commands (experimental; --yes is required):\n"
-        << L"  awfan-native boost <cpu-percent> <gpu-percent> --yes\n"
-        << L"  awfan-native balanced --yes        # 25%, 25%\n"
-        << L"  awfan-native cool --yes            # 55%, 55%\n"
-        << L"  awfan-native max --yes             # 100%, 100%\n"
-        << L"  awfan-native profile <0-5> --yes\n"
-        << L"  awfan-native auto <1-5> --yes      # alias for profile\n\n"
-        << L"Diagnostics:\n"
-        << L"  awfan-native raw-probe\n"
-        << L"  awfan-native exact-probe\n"
-        << L"  awfan-native probe [--namespace <path>] [--all] [--signatures]\n"
-        << L"  awfan-native inspect-awcc [--namespace <path>]\n"
-        << L"  awfan-native version\n\n"
-        << L"Notes:\n"
-        << L"  - Manual boost commands save their requested percentages. Status,\n"
-        << L"    fans and watch then show estimated target RPM and whether each\n"
-        << L"    fan is above, below or near that target.\n"
-        << L"  - Target RPM is estimated from requested percent and maximum RPM;\n"
-        << L"    it is not a firmware-reported value.\n"
-        << L"  - Profile 0 is manual control. Profiles 1-5 map to the firmware\n"
-        << L"    profile IDs discovered on this machine.\n"
-        << L"  - Run 'profiles' before changing profiles.\n"
-        << L"  - Control commands are blocked unless --yes is supplied.\n";
+        << L"  awfan status [--json]\n"
+        << L"  awfan fans [--json]\n"
+        << L"  awfan temps [once|seconds] [--json]\n"
+        << L"  awfan watch [seconds]\n"
+        << L"  awfan profiles [--json]\n"
+        << L"  awfan doctor [--json]\n"
+        << L"  awfan state [--json]\n\n"
+        << L"Control commands (experimental; --yes required):\n"
+        << L"  awfan boost <cpu-value> <gpu-value> --yes [--json]\n"
+        << L"  awfan max --yes [--json]\n"
+        << L"  awfan profile <0-5> --yes [--json]\n"
+        << L"  awfan auto <1-5> --yes [--json]\n\n"
+        << L"Maintenance and diagnostics:\n"
+        << L"  awfan clear-state\n"
+        << L"  awfan raw-probe\n"
+        << L"  awfan exact-probe\n"
+        << L"  awfan probe [--namespace <path>] [--all] [--signatures]\n"
+        << L"  awfan inspect-awcc [--namespace <path>]\n"
+        << L"  awfan version\n\n"
+        << L"Important:\n"
+        << L"  - boost values are firmware control inputs from 0 to 100. They are\n"
+        << L"    not percentages and do not directly represent target RPM.\n"
+        << L"  - status, fans and watch report actual RPM trend by comparing\n"
+        << L"    consecutive samples: rising, falling or stable.\n"
+        << L"  - reported maximum RPM is nominal. Live telemetry may briefly\n"
+        << L"    exceed it.\n"
+        << L"  - profile 0 is manual mode. Profiles 1-5 map to discovered firmware\n"
+        << L"    profile IDs. Run 'awfan profiles' before changing profiles.\n"
+        << L"  - every hardware write is blocked unless --yes is supplied.\n";
 }
 
 bool has_flag(
@@ -206,6 +207,27 @@ int run_command(int argc, wchar_t** argv) {
         return awfan::run_native_profiles(json_output);
     }
 
+    if (command == L"doctor") {
+        if (!values.empty()) {
+            throw std::runtime_error("doctor accepts only --json.");
+        }
+        return awfan::run_native_doctor(json_output);
+    }
+
+    if (command == L"state") {
+        if (!values.empty()) {
+            throw std::runtime_error("state accepts only --json.");
+        }
+        return awfan::run_native_state(json_output);
+    }
+
+    if (command == L"clear-state") {
+        if (!values.empty() || json_output || confirmed) {
+            throw std::runtime_error("clear-state accepts no options.");
+        }
+        return awfan::run_native_clear_state();
+    }
+
     if (command == L"temps") {
         if (values.empty() || values[0] == L"once") {
             if (values.size() > 1) {
@@ -241,32 +263,18 @@ int run_command(int argc, wchar_t** argv) {
     if (command == L"boost") {
         if (values.size() != 2) {
             throw std::runtime_error(
-                "Usage: awfan-native boost <cpu> <gpu> --yes"
+                "Usage: awfan boost <cpu-value> <gpu-value> --yes"
             );
         }
 
-        const int cpu = parse_integer(values[0], L"CPU boost", 0, 100);
-        const int gpu = parse_integer(values[1], L"GPU boost", 0, 100);
+        const int cpu = parse_integer(values[0], L"CPU boost value", 0, 100);
+        const int gpu = parse_integer(values[1], L"GPU boost value", 0, 100);
         return awfan::run_native_set_boost(
             cpu,
             gpu,
             confirmed,
             json_output
         );
-    }
-
-    if (command == L"balanced") {
-        if (!values.empty()) {
-            throw std::runtime_error("balanced accepts only --yes and --json.");
-        }
-        return awfan::run_native_set_boost(25, 25, confirmed, json_output);
-    }
-
-    if (command == L"cool") {
-        if (!values.empty()) {
-            throw std::runtime_error("cool accepts only --yes and --json.");
-        }
-        return awfan::run_native_set_boost(55, 55, confirmed, json_output);
     }
 
     if (command == L"max") {
@@ -279,7 +287,7 @@ int run_command(int argc, wchar_t** argv) {
     if (command == L"profile" || command == L"auto") {
         if (values.size() != 1) {
             throw std::runtime_error(
-                "Usage: awfan-native profile <0-5> --yes"
+                "Usage: awfan profile <0-5> --yes"
             );
         }
 
@@ -314,7 +322,7 @@ int run_command(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native " << kVersion << L"\n";
+        std::wcout << L"awfan " << kVersion << L"\n";
         return 0;
     }
 
@@ -324,7 +332,7 @@ int run_command(int argc, wchar_t** argv) {
     }
 
     throw std::runtime_error(
-        "Unknown command. Run 'awfan-native help' for usage."
+        "Unknown command. Run 'awfan help' for usage."
     );
 }
 
@@ -334,7 +342,7 @@ int wmain(int argc, wchar_t** argv) {
     try {
         return run_command(argc, argv);
     } catch (const std::exception& error) {
-        std::cerr << "awfan-native: " << error.what() << '\n';
+        std::cerr << "awfan: " << error.what() << '\n';
         return 1;
     }
 }
