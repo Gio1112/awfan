@@ -1,5 +1,5 @@
-awfan 1.0.0-rc1
-================
+awfan 1.0.0
+===========
 
 Highlights
 ----------
@@ -20,8 +20,8 @@ Behavior correction from pre-release diagnostics
 ------------------------------------------------
 Firmware boost values are not target fan percentages or target RPM values.
 Testing showed that boost value 80 can drive the tested AC16251 close to
-maximum fan speed. The release candidate therefore reports the raw commanded
-boost value and actual RPM trend instead of inventing a target RPM.
+maximum fan speed. awfan therefore reports the raw commanded boost value and
+actual RPM trend instead of inventing a target RPM.
 
 Profile zero remains visible for diagnostics but is intentionally not accepted
 by the profile command because it did not reliably clear an existing boost.
