@@ -7,6 +7,7 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         'temps',
         'watch',
         'profiles',
+        'presets',
         'doctor',
         'state',
         'clear-state',
@@ -38,8 +39,23 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         return
     }
 
-    $options = @('--json', '--yes')
     $command = $tokens[1]
+
+    if ($command -in @('profile', 'auto') -and $tokens.Count -le 3) {
+        @('1', '2', '3', '4', '5') |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterValue',
+                    "Firmware profile index $_"
+                )
+            }
+        return
+    }
+
+    $options = @('--json', '--yes')
 
     if ($command -in @('probe', 'inspect-awcc')) {
         $options += '--namespace'
