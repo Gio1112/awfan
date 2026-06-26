@@ -50,6 +50,39 @@ jobs:
         shell: pwsh
         run: cmake --build build/native --config Release --target package
 
+      - name: Verify package and checksum
+        shell: pwsh
+        run: |
+          $zip = Get-Item ".\build\native\awfan-1.0.0-rc1-windows-x64.zip"
+          $extract = ".\build\native\package-smoke"
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
+
+          $packageRoot = Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
+          if (-not $packageRoot) { throw "Package root directory was not found." }
+
+          $required = @(
+            "awfan.exe",
+            "install.ps1",
+            "uninstall.ps1",
+            "awfan-completion.ps1",
+            "README.txt",
+            "CHANGELOG.txt",
+            "THIRD-PARTY-NOTICES.txt"
+          )
+
+          foreach ($file in $required) {
+            if (-not (Test-Path -LiteralPath (Join-Path $packageRoot.FullName $file))) {
+              throw "Package is missing $file"
+            }
+          }
+
+          & (Join-Path $packageRoot.FullName "awfan.exe") version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
+          "$($hash.Hash.ToLower())  $($zip.Name)" |
+            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-rc1-windows-x64.sha256"
+
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
@@ -61,7 +94,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: awfan-1.0.0-rc1-windows-x64
-          path: build/native/awfan-1.0.0-rc1-windows-x64.zip
+          path: |
+            build/native/awfan-1.0.0-rc1-windows-x64.zip
+            build/native/awfan-1.0.0-rc1-windows-x64.sha256
           if-no-files-found: error
 
       - name: Upload build log
