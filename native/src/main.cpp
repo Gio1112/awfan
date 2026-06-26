@@ -12,6 +12,18 @@ namespace {
 
 constexpr wchar_t kVersion[] = L"1.0.0-rc1";
 
+void print_presets() {
+    std::wcout
+        << L"Known USTT profile names for the discovered AC16251 IDs:\n"
+        << L"  1  0xA0  Balanced\n"
+        << L"  2  0xA1  Balanced Performance\n"
+        << L"  3  0xA2  Cool\n"
+        << L"  4  0xA3  Quiet\n"
+        << L"  5  0xA4  Performance\n\n"
+        << L"The raw ID is the source of truth. Run 'awfan profiles' to confirm\n"
+        << L"that these IDs are present before changing a profile.\n";
+}
+
 void print_help() {
     std::wcout
         << L"awfan " << kVersion << L"\n\n"
@@ -22,6 +34,7 @@ void print_help() {
         << L"  awfan temps [once|seconds] [--json]\n"
         << L"  awfan watch [seconds]\n"
         << L"  awfan profiles [--json]\n"
+        << L"  awfan presets\n"
         << L"  awfan doctor [--json]\n"
         << L"  awfan state [--json]\n\n"
         << L"Control commands (experimental; --yes required):\n"
@@ -37,8 +50,8 @@ void print_help() {
         << L"  awfan inspect-awcc [--namespace <path>]\n"
         << L"  awfan version\n\n"
         << L"Important:\n"
-        << L"  - boost values are firmware control inputs from 0 to 100. They are\n"
-        << L"    not percentages and do not directly represent target RPM.\n"
+        << L"  - boost values are firmware fan-boost inputs from 0 to 100. They\n"
+        << L"    are not target fan percentages and do not represent target RPM.\n"
         << L"  - boost enters manual control. Use profile/auto 1-5 to clear the\n"
         << L"    manual boost and return to dynamic firmware control.\n"
         << L"  - firmware profile 0 is displayed for diagnostics but is not exposed\n"
@@ -49,7 +62,7 @@ void print_help() {
         << L"  - reported maximum RPM is nominal. Live telemetry may briefly\n"
         << L"    exceed it.\n"
         << L"  - profiles 1-5 map to discovered firmware profile IDs. Run\n"
-        << L"    'awfan profiles' before changing profiles.\n"
+        << L"    'awfan profiles' and 'awfan presets' before changing profiles.\n"
         << L"  - every hardware write is blocked unless --yes is supplied.\n";
 }
 
@@ -210,6 +223,14 @@ int run_command(int argc, wchar_t** argv) {
             throw std::runtime_error("profiles accepts only --json.");
         }
         return awfan::run_native_profiles(json_output);
+    }
+
+    if (command == L"presets") {
+        if (!values.empty() || json_output || confirmed) {
+            throw std::runtime_error("presets accepts no options.");
+        }
+        print_presets();
+        return 0;
     }
 
     if (command == L"doctor") {
