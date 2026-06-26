@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan_native VERSION 0.2.0 LANGUAGES CXX)
+project(awfan_native VERSION 0.2.1 LANGUAGES CXX)
 
 add_executable(awfan-native
     src/main.cpp
