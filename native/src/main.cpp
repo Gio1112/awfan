@@ -9,7 +9,7 @@ namespace {
 
 void print_help() {
     std::wcout
-        << L"awfan-native 0.3.0-readonly\n\n"
+        << L"awfan-native 0.3.1-readonly\n\n"
         << L"Native Alienware WMI backend experiment.\n"
         << L"This build can read firmware status but cannot change fan speeds,\n"
         << L"power profiles, TCC, G-Mode, XMP or any other hardware state.\n\n"
@@ -182,7 +182,7 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     if (command == L"version" || command == L"--version") {
-        std::wcout << L"awfan-native 0.3.0-readonly\n";
+        std::wcout << L"awfan-native 0.3.1-readonly\n";
         return 0;
     }
 
