@@ -17,6 +17,8 @@ struct ProbeSummary {
 };
 
 struct InstanceProbeSummary {
+    bool class_found{false};
+    int static_methods{0};
     int instances_found{0};
 };
 
