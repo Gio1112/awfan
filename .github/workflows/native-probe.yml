@@ -1,0 +1,40 @@
+name: Native probe
+
+on:
+  push:
+    branches:
+      - codex/native-backend-probe
+    paths:
+      - native/**
+      - .github/workflows/native-probe.yml
+  pull_request:
+    paths:
+      - native/**
+      - .github/workflows/native-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S native -B build/native -A x64
+
+      - name: Build
+        run: cmake --build build/native --config Release --parallel
+
+      - name: Smoke test
+        run: .\\build\\native\\Release\\awfan-native.exe version
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: awfan-native-probe-x64
+          path: build/native/Release/awfan-native.exe
+          if-no-files-found: error
