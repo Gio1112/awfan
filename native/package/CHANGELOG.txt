@@ -15,6 +15,8 @@ Highlights
 - User-level installer, uninstaller, PowerShell completion, portable ZIP,
   and CI packaging.
 - Doctor and state inspection commands.
+- MIT license, public documentation, compatibility guidance, security policy,
+  and contributor templates.
 
 Behavior correction from pre-release diagnostics
 ------------------------------------------------
@@ -26,6 +28,12 @@ actual RPM trend instead of inventing a target RPM.
 Profile zero remains visible for diagnostics but is intentionally not accepted
 by the profile command because it did not reliably clear an existing boost.
 Profiles 1 through 5 clear manual boost values and return control to firmware.
+
+Public package
+--------------
+The Windows ZIP includes awfan.exe, installer and uninstaller scripts,
+PowerShell completion, the MIT license, changelog, README, and third-party
+notices. A matching SHA-256 checksum is attached to the GitHub release.
 
 Known limitations
 -----------------
