@@ -3,6 +3,9 @@ awfan 1.0.0
 
 Native C++20 Alienware fan and thermal CLI for Windows.
 
+awfan is an independent community project and is not affiliated with or
+endorsed by Dell Technologies or Alienware.
+
 Quick install
 -------------
 1. Extract the ZIP.
@@ -86,3 +89,8 @@ Compatibility
 -------------
 Validated on Alienware 16X Aurora AC16251 using the AWCC WMI provider in
 ROOT\WMI. Other Alienware systems may expose different resources or methods.
+
+License and notices
+-------------------
+awfan is released under the MIT License. See LICENSE.txt.
+Third-party acknowledgements are listed in THIRD-PARTY-NOTICES.txt.
