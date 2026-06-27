@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"1.1.1";
+constexpr wchar_t kVersion[] = L"1.1.2";
 
 void print_presets() {
     std::wcout
