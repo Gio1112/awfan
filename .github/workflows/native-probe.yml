@@ -72,7 +72,8 @@ jobs:
             "awfan-completion.ps1",
             "README.txt",
             "CHANGELOG.txt",
-            "THIRD-PARTY-NOTICES.txt"
+            "THIRD-PARTY-NOTICES.txt",
+            "LICENSE.txt"
           )
 
           foreach ($file in $required) {
@@ -90,6 +91,10 @@ jobs:
           & (Join-Path $packageRoot.FullName "install.ps1") -InstallDir $installDir -NoPath
           & (Join-Path $installDir "awfan.exe") version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          if (-not (Test-Path -LiteralPath (Join-Path $installDir "LICENSE.txt"))) {
+            throw "The installed files are missing LICENSE.txt"
+          }
 
           & (Join-Path $packageRoot.FullName "uninstall.ps1") -InstallDir $installDir -KeepState
           if (Test-Path -LiteralPath $installDir) {
