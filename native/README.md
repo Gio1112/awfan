@@ -37,3 +37,5 @@ cmake --build build/native --config Release --target package
 ```
 
 awfan 1.2.0 adds friendly mode names, restoration timers, custom presets, broker tools, redacted reports, and update recovery. See [`../docs/PLATFORM-1.2.md`](../docs/PLATFORM-1.2.md).
+
+The version-driven release workflow publishes the packaged ZIP and matching checksum after the Windows validation workflow succeeds.
