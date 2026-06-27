@@ -5,7 +5,7 @@
 **A lightweight native fan and thermal CLI for Alienware systems on Windows.**
 
 [![Release](https://img.shields.io/github/v/release/Gio1112/awfan?display_name=tag&sort=semver)](https://github.com/Gio1112/awfan/releases/latest)
-[![Native CLI](https://github.com/Gio1112/awfan/actions/workflows/native-probe.yml/badge.svg)](https://github.com/Gio1112/awfan/actions/workflows/native-probe.yml)
+[![Windows build](https://github.com/Gio1112/awfan/actions/workflows/native-probe.yml/badge.svg)](https://github.com/Gio1112/awfan/actions/workflows/native-probe.yml)
 [![Windows x64](https://img.shields.io/badge/platform-Windows%20x64-0078D4)](https://github.com/Gio1112/awfan/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
 
@@ -43,7 +43,7 @@ See [Compatibility](docs/COMPATIBILITY.md) before testing another model.
 
 ### Recommended: release package
 
-1. Download `awfan-1.0.0-windows-x64.zip` and its `.sha256` file from the [latest release](https://github.com/Gio1112/awfan/releases/latest).
+1. Download the `awfan-<version>-windows-x64.zip` package and matching `.sha256` file from the [latest release](https://github.com/Gio1112/awfan/releases/latest).
 2. Extract the ZIP.
 3. Open PowerShell in the extracted folder.
 4. Run:
@@ -165,11 +165,27 @@ cmake --build build/native --config Release
 .\build\native\Release\awfan.exe doctor
 ```
 
+Install the locally built executable:
+
+```powershell
+.\install.ps1
+```
+
 Create the distributable ZIP:
 
 ```powershell
 cmake --build build/native --config Release --target package
 ```
+
+## Documentation
+
+- [Compatibility](docs/COMPATIBILITY.md)
+- [Troubleshooting and safety](docs/TROUBLESHOOTING.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Legacy PowerShell prototype](docs/LEGACY.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
 
 ## Project layout
 
@@ -179,11 +195,11 @@ native/
   src/                C++ AWCC backend and CLI
   package/            Installer, completion, notices, and package docs
 .github/workflows/    Windows build and release automation
-docs/                 Compatibility and troubleshooting documentation
-src/                   Legacy PowerShell prototype
+docs/                 Compatibility, architecture, and troubleshooting docs
+src/                  Retired PowerShell prototype
 ```
 
-The PowerShell implementation in `src/` and the root-level legacy scripts are retained for historical reference. New users should use the native release package.
+The PowerShell implementation in `src/` and the root-level legacy files are retained for historical reference. New users should use the native release package.
 
 ## Contributing
 
