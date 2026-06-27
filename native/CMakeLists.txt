@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan VERSION 1.0.1 LANGUAGES CXX)
+project(awfan VERSION 1.1.0 LANGUAGES CXX)
 
 add_executable(awfan
+    src/frontend_main.cpp
+    src/broker.cpp
+    src/update.cpp
+)
+
+add_executable(awfan-core
     src/cli_main.cpp
     src/update.cpp
     src/native_cli_release.cpp
@@ -12,24 +18,36 @@ add_executable(awfan
     src/awcc_raw_v3.cpp
 )
 
-target_compile_features(awfan PRIVATE cxx_std_20)
-target_include_directories(awfan PRIVATE include)
-target_compile_definitions(awfan PRIVATE
-    UNICODE
-    _UNICODE
-    WIN32_LEAN_AND_MEAN
-    NOMINMAX
+add_executable(awfan-broker WIN32
+    src/broker_main.cpp
+    src/broker.cpp
 )
-target_link_libraries(awfan PRIVATE wbemuuid ole32 oleaut32)
+
+foreach(target awfan awfan-core awfan-broker)
+    target_compile_features(${target} PRIVATE cxx_std_20)
+    target_include_directories(${target} PRIVATE include)
+    target_compile_definitions(${target} PRIVATE
+        UNICODE
+        _UNICODE
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+endforeach()
+
+target_link_libraries(awfan PRIVATE advapi32)
+target_link_libraries(awfan-core PRIVATE wbemuuid ole32 oleaut32)
+target_link_libraries(awfan-broker PRIVATE advapi32)
 
 if(MSVC)
-    set_property(TARGET awfan PROPERTY
-        MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
-    )
-    target_compile_options(awfan PRIVATE /W4 /permissive- /EHsc /utf-8)
+    foreach(target awfan awfan-core awfan-broker)
+        set_property(TARGET ${target} PROPERTY
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+        )
+        target_compile_options(${target} PRIVATE /W4 /permissive- /EHsc /utf-8)
+    endforeach()
 endif()
 
-install(TARGETS awfan RUNTIME DESTINATION .)
+install(TARGETS awfan awfan-core awfan-broker RUNTIME DESTINATION .)
 install(FILES
     package/install.ps1
     package/update.ps1

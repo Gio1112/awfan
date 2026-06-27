@@ -1,4 +1,4 @@
-awfan 1.0.1
+awfan 1.1.0
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -14,14 +14,43 @@ Quick install
 
    .\install.ps1
 
-4. Open a new terminal and run:
+4. Approve the one administrator prompt used to install the background broker.
+5. Open a new terminal and run:
 
+   awfan broker-status
    awfan doctor
    awfan status
 
-Portable use
-------------
-   .\awfan.exe status
+Background broker
+-----------------
+The installer creates an elevated scheduled task for the current Windows user.
+The task starts awfan-broker.exe at sign-in and keeps AWCC access in the
+background. Normal awfan commands are sent through a named pipe restricted to
+the current user, Administrators, and SYSTEM.
+
+The broker-enabled installation is stored at:
+
+   C:\Program Files\awfan
+
+This removes repeated UAC prompts for status, monitoring, profiles, and fan
+control. Every hardware-changing command still requires --yes.
+
+The broker pauses while Windows is asleep and continues after resume. Closing
+the lid only keeps it active when Windows is configured not to sleep.
+
+Check it with:
+
+   awfan broker-status
+
+Portable or broker-free installation
+-------------------------------------
+The package can still be used directly from an elevated terminal. To install
+without the scheduled background broker:
+
+   .\install.ps1 -NoBroker
+
+A broker-free installation uses %LOCALAPPDATA%\Programs\awfan by default.
+Hardware commands may then require an elevated terminal.
 
 Read commands
 -------------
@@ -44,14 +73,9 @@ Download, verify, and install the latest stable release:
 
    awfan update
 
-Force a reinstall of the latest release:
-
-   awfan update --force
-
-The updater downloads the ZIP and matching SHA-256 checksum from GitHub
-Releases. It does not use Git and does not require a repository checkout.
-Version 1.0.1 must be installed once manually before the built-in updater is
-available.
+The updater verifies the release SHA-256 checksum. Updates that include the
+broker may request one administrator approval while replacing and restarting
+the scheduled task.
 
 Experimental control commands
 -----------------------------
@@ -78,12 +102,6 @@ Known profile names for the tested AC16251 are:
 Run awfan profiles and awfan presets before changing profiles. Profile 0 is
 shown for diagnostics but is intentionally not accepted by the profile command.
 
-RPM trend
----------
-status, fans and watch compare consecutive RPM samples and report rising,
-falling or stable. The reported maximum RPM is nominal; brief readings above
-it are possible.
-
 State
 -----
 awfan stores its last command and RPM sample history at:
@@ -94,15 +112,12 @@ Clear it with:
 
    awfan clear-state
 
-PowerShell completion
----------------------
-   . "$env:LOCALAPPDATA\Programs\awfan\awfan-completion.ps1"
-
 Uninstall
 ---------
-   & "$env:LOCALAPPDATA\Programs\awfan\uninstall.ps1"
+   & "C:\Program Files\awfan\uninstall.ps1"
 
-Use -KeepState to retain the local state file.
+The uninstaller removes the scheduled broker task. Use -KeepState to retain the
+local state file.
 
 Compatibility
 -------------

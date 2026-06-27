@@ -1,40 +1,56 @@
 [CmdletBinding()]
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\awfan",
+    [string]$InstallDir = "",
     [switch]$Uninstall,
-    [switch]$NoPath
+    [switch]$NoPath,
+    [switch]$NoBroker
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $SourceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$BuiltExe = Join-Path $SourceRoot "build\native\Release\awfan.exe"
+$BuildRoot = Join-Path $SourceRoot "build\native\Release"
 $PackageRoot = Join-Path $SourceRoot "native\package"
 
 if ($Uninstall) {
+    if (-not $InstallDir) {
+        $InstallDir = if ($NoBroker) {
+            Join-Path $env:LOCALAPPDATA "Programs\awfan"
+        } else {
+            Join-Path $env:ProgramFiles "awfan"
+        }
+    }
+
     $uninstaller = Join-Path $InstallDir "uninstall.ps1"
     if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
         throw "The native awfan uninstaller was not found at $uninstaller"
     }
 
-    & $uninstaller
+    $arguments = @{ InstallDir = $InstallDir }
+    if ($NoBroker) { $arguments.NoBroker = $true }
+    & $uninstaller @arguments
     exit $LASTEXITCODE
 }
 
-if (-not (Test-Path -LiteralPath $BuiltExe -PathType Leaf)) {
-    throw @"
-The native awfan executable has not been built in this source checkout.
+$builtFiles = @(
+    "awfan.exe",
+    "awfan-core.exe",
+    "awfan-broker.exe"
+)
 
-Recommended installation:
-  Download the latest awfan Windows x64 ZIP from:
-  https://github.com/Gio1112/awfan/releases/latest
+foreach ($file in $builtFiles) {
+    $path = Join-Path $BuildRoot $file
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw @"
+The native awfan binaries have not been built in this source checkout.
 
-Or build from source first:
+Build from source first:
   cmake -S native -B build/native -A x64
   cmake --build build/native --config Release
   .\install.ps1
 "@
+    }
 }
 
 $requiredPackageFiles = @(
@@ -60,7 +76,11 @@ Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $staging | Out-Null
 
 try {
-    Copy-Item -LiteralPath $BuiltExe -Destination (Join-Path $staging "awfan.exe")
+    foreach ($file in $builtFiles) {
+        Copy-Item `
+            -LiteralPath (Join-Path $BuildRoot $file) `
+            -Destination (Join-Path $staging $file)
+    }
 
     foreach ($file in $requiredPackageFiles) {
         Copy-Item `
@@ -69,12 +89,12 @@ try {
     }
 
     $installer = Join-Path $staging "install.ps1"
-    if ($NoPath) {
-        & $installer -InstallDir $InstallDir -NoPath
-    } else {
-        & $installer -InstallDir $InstallDir
-    }
+    $arguments = @{}
+    if ($InstallDir) { $arguments.InstallDir = $InstallDir }
+    if ($NoPath) { $arguments.NoPath = $true }
+    if ($NoBroker) { $arguments.NoBroker = $true }
 
+    & $installer @arguments
     exit $LASTEXITCODE
 }
 finally {
