@@ -39,6 +39,7 @@ Or build from source first:
 
 $requiredPackageFiles = @(
     "install.ps1",
+    "update.ps1",
     "uninstall.ps1",
     "awfan-completion.ps1",
     "README.txt",
