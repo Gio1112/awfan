@@ -36,6 +36,7 @@ install(FILES
     package/README.txt
     package/CHANGELOG.txt
     package/THIRD-PARTY-NOTICES.txt
+    package/LICENSE.txt
     DESTINATION .
 )
 
