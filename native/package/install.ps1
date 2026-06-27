@@ -21,7 +21,8 @@ $files = @(
     "awfan-completion.ps1",
     "README.txt",
     "CHANGELOG.txt",
-    "THIRD-PARTY-NOTICES.txt"
+    "THIRD-PARTY-NOTICES.txt",
+    "LICENSE.txt"
 )
 
 foreach ($file in $files) {
