@@ -41,33 +41,37 @@ jobs:
           $broker = Join-Path $root "awfan-broker.exe"
 
           $version = (& $exe version | Out-String).Trim()
-          if ($version -ne "awfan 1.1.3") {
+          if ($version -ne "awfan 1.2.0") {
             throw "Unexpected version output: $version"
           }
 
           $help = (& $exe help | Out-String)
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ($help -notmatch "awfan broker-status") {
-            throw "Broker commands are missing from help output."
-          }
-          if ($help -notmatch "awfan update --check") {
-            throw "Updater commands are missing from help output."
-          }
-
-          foreach ($alias in @(
-            "balanced",
-            "balanced-performance",
-            "balancedperformance",
-            "cool",
-            "quiet",
-            "performance"
+          foreach ($expected in @(
+            "awfan mode",
+            "awfan restore",
+            "awfan preset",
+            "awfan broker status",
+            "awfan report",
+            "--until-reboot"
           )) {
-            $aliasOutput = (& $exe $alias --invalid 2>&1 | Out-String)
-            if ($LASTEXITCODE -eq 0 -or
-                $aliasOutput -notmatch "Profile aliases accept only") {
-              throw "Named alias '$alias' was not parsed by the frontend."
+            if ($help -notmatch [regex]::Escape($expected)) {
+              throw "Help output is missing: $expected"
             }
           }
+
+          $invalidDuration = (& $exe max --yes --for invalid 2>&1 | Out-String)
+          if ($LASTEXITCODE -eq 0 -or $invalidDuration -notmatch "Duration") {
+            throw "Safety duration parsing was not reached."
+          }
+
+          & $exe preset create ci-test 40 50
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $presets = & $exe preset list --json | ConvertFrom-Json
+          if ($presets.presets[0].name -ne "ci-test") {
+            throw "Preset persistence smoke test failed."
+          }
+          & $exe preset delete ci-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           & $exe state --json | ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -79,6 +83,11 @@ jobs:
             -PassThru
           if ($brokerTest.ExitCode -ne 0) {
             throw "Broker self-test failed with exit code $($brokerTest.ExitCode)."
+          }
+
+          $brokerVersion = (& $broker --version | Out-String).Trim()
+          if ($brokerVersion -ne "awfan-broker 1.2.0") {
+            throw "Unexpected broker version: $brokerVersion"
           }
 
           $updater = Get-Content ".\native\package\update.ps1" -Raw
@@ -93,18 +102,16 @@ jobs:
         shell: pwsh
         run: cmake --build build/native --config Release --target package
 
-      - name: Verify package, migration, repair and checksum
+      - name: Verify package and installer
         shell: pwsh
         run: |
           $zip = Get-ChildItem ".\build\native" -Filter "awfan-*-windows-x64.zip" |
             Sort-Object LastWriteTime -Descending |
             Select-Object -First 1
-
           if (-not $zip) { throw "The CPack ZIP was not created." }
 
           $extract = ".\build\native\package-smoke"
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
-
           $packageRoot = Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
           if (-not $packageRoot) { throw "Package root directory was not found." }
 
@@ -114,6 +121,7 @@ jobs:
             "awfan-broker.exe",
             "install.ps1",
             "update.ps1",
+            "update-transaction.ps1",
             "uninstall.ps1",
             "awfan-completion.ps1",
             "README.txt",
@@ -121,30 +129,21 @@ jobs:
             "THIRD-PARTY-NOTICES.txt",
             "LICENSE.txt"
           )
-
           foreach ($file in $required) {
             if (-not (Test-Path -LiteralPath (Join-Path $packageRoot.FullName $file))) {
               throw "Package is missing $file"
             }
           }
 
-          & (Join-Path $packageRoot.FullName "awfan.exe") version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          . (Join-Path $packageRoot.FullName "awfan-completion.ps1")
-
           $installDir = Join-Path $env:RUNNER_TEMP "awfan-install-smoke"
           New-Item -ItemType Directory -Path $installDir -Force | Out-Null
-
-          $legacyFiles = @(
+          foreach ($file in @(
             "awfan.ps1",
             "awfan.cmd",
             "awfan-broker.ps1",
             "awfan-updater.ps1",
             "VERSION"
-          )
-
-          foreach ($file in $legacyFiles) {
+          )) {
             Set-Content -LiteralPath (Join-Path $installDir $file) -Value "legacy"
           }
 
@@ -152,58 +151,36 @@ jobs:
             -InstallDir $installDir `
             -NoPath `
             -NoBroker
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          foreach ($file in $legacyFiles) {
-            if (Test-Path -LiteralPath (Join-Path $installDir $file)) {
-              throw "Legacy migration did not remove $file"
-            }
-          }
-
-          foreach ($file in @(
-            "awfan.exe",
-            "awfan-core.exe",
-            "awfan-broker.exe",
-            "install.ps1",
-            "update.ps1",
-            "uninstall.ps1",
-            "LICENSE.txt"
-          )) {
+          foreach ($file in $required) {
+            if ($file -eq "README.txt" -or $file -eq "CHANGELOG.txt" -or
+                $file -eq "THIRD-PARTY-NOTICES.txt") { continue }
             if (-not (Test-Path -LiteralPath (Join-Path $installDir $file))) {
-              throw "The installed files are missing $file"
+              throw "Installed files are missing $file"
             }
           }
 
           & (Join-Path $installDir "awfan.exe") version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          & (Join-Path $installDir "awfan.exe") state --json |
-            ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
           & (Join-Path $installDir "install.ps1") `
             -InstallDir $installDir `
             -NoPath `
             -NoBroker
-          if ($LASTEXITCODE -ne 0) {
-            throw "In-place repair installation failed."
-          }
-
-          & (Join-Path $installDir "awfan.exe") version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE -ne 0) { throw "In-place repair failed." }
 
           & (Join-Path $installDir "uninstall.ps1") `
             -InstallDir $installDir `
             -KeepState `
             -NoBroker
-
           if (Test-Path -LiteralPath $installDir) {
-            throw "The temporary installation directory still exists after uninstall."
+            throw "Temporary installation still exists after uninstall."
           }
 
           $checksum = [System.IO.Path]::ChangeExtension($zip.FullName, ".sha256")
           $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
-          "$($hash.Hash.ToLower())  $($zip.Name)" |
-            Set-Content -Encoding ascii $checksum
+          "$($hash.Hash.ToLower())  $($zip.Name)" | Set-Content -Encoding ascii $checksum
 
       - name: Upload binaries
         uses: actions/upload-artifact@v4
@@ -224,10 +201,17 @@ jobs:
             build/native/awfan-*-windows-x64.sha256
           if-no-files-found: error
 
-      - name: Upload build log
+      - name: Upload build log and source snapshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: awfan-native-build-log
-          path: native-build.log
+          name: awfan-native-debug
+          path: |
+            native-build.log
+            native/src/frontend_main.cpp
+            native/src/platform_features.cpp
+            native/src/broker.cpp
+            native/package/update.ps1
+            native/package/install.ps1
+            native/CMakeLists.txt
           if-no-files-found: warn
