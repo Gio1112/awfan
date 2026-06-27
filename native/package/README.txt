@@ -28,6 +28,10 @@ The task starts awfan-broker.exe at sign-in and keeps AWCC access in the
 background. Normal awfan commands are sent through a named pipe restricted to
 the current user, Administrators, and SYSTEM.
 
+The broker-enabled installation is stored at:
+
+   C:\Program Files\awfan
+
 This removes repeated UAC prompts for status, monitoring, profiles, and fan
 control. Every hardware-changing command still requires --yes.
 
@@ -45,6 +49,7 @@ without the scheduled background broker:
 
    .\install.ps1 -NoBroker
 
+A broker-free installation uses %LOCALAPPDATA%\Programs\awfan by default.
 Hardware commands may then require an elevated terminal.
 
 Read commands
@@ -109,7 +114,7 @@ Clear it with:
 
 Uninstall
 ---------
-   & "$env:LOCALAPPDATA\Programs\awfan\uninstall.ps1"
+   & "C:\Program Files\awfan\uninstall.ps1"
 
 The uninstaller removes the scheduled broker task. Use -KeepState to retain the
 local state file.
