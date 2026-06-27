@@ -15,6 +15,8 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         'max',
         'profile',
         'auto',
+        'broker-status',
+        'update',
         'raw-probe',
         'exact-probe',
         'probe',
@@ -50,6 +52,20 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
                     $_,
                     'ParameterValue',
                     "Firmware profile index $_"
+                )
+            }
+        return
+    }
+
+    if ($command -eq 'update') {
+        @('--check', '--force') |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterName',
+                    $_
                 )
             }
         return
