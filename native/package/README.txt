@@ -1,4 +1,4 @@
-awfan 1.1.2
+awfan 1.1.3
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -33,8 +33,8 @@ the native executable:
    VERSION
 
 It also removes the old awfan Broker and awfan Updater scheduled tasks. The
-installed directory now contains install.ps1, so the installation can be
-repaired in place later with:
+installed directory contains install.ps1, so the installation can be repaired
+in place later with:
 
    & "C:\Program Files\awfan\install.ps1"
 
@@ -101,20 +101,31 @@ Experimental control commands
    awfan profile <1-5> --yes
    awfan auto <1-5> --yes
 
+Named profile aliases
+---------------------
+   awfan balanced --yes
+   awfan balanced-performance --yes
+   awfan cool --yes
+   awfan quiet --yes
+   awfan performance --yes
+
+The compact spelling `balancedperformance` is also accepted. Aliases support
+--json and keep the same --yes safety confirmation as `profile` and `auto`.
+
+Alias mappings on the tested AC16251 are:
+
+   balanced              1  0xA0  Balanced
+   balanced-performance  2  0xA1  Balanced Performance
+   cool                  3  0xA2  Cool
+   quiet                 4  0xA3  Quiet
+   performance           5  0xA4  Performance
+
 Every control command requires --yes.
 
 Boost values are firmware fan-boost inputs from 0 to 100. They are not target
 fan percentages and are not target RPM values. A boost command selects manual
 control. Use a discovered profile from 1 to 5 to return to dynamic firmware
 control.
-
-Known profile names for the tested AC16251 are:
-
-   1  0xA0  Balanced
-   2  0xA1  Balanced Performance
-   3  0xA2  Cool
-   4  0xA3  Quiet
-   5  0xA4  Performance
 
 Run awfan profiles and awfan presets before changing profiles. Profile 0 is
 shown for diagnostics but is intentionally not accepted by the profile command.

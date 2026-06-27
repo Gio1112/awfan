@@ -41,7 +41,7 @@ jobs:
           $broker = Join-Path $root "awfan-broker.exe"
 
           $version = (& $exe version | Out-String).Trim()
-          if ($version -ne "awfan 1.1.2") {
+          if ($version -ne "awfan 1.1.3") {
             throw "Unexpected version output: $version"
           }
 
@@ -52,6 +52,21 @@ jobs:
           }
           if ($help -notmatch "awfan update --check") {
             throw "Updater commands are missing from help output."
+          }
+
+          foreach ($alias in @(
+            "balanced",
+            "balanced-performance",
+            "balancedperformance",
+            "cool",
+            "quiet",
+            "performance"
+          )) {
+            $aliasOutput = (& $exe $alias --invalid 2>&1 | Out-String)
+            if ($LASTEXITCODE -eq 0 -or
+                $aliasOutput -notmatch "Profile aliases accept only") {
+              throw "Named alias '$alias' was not parsed by the frontend."
+            }
           }
 
           & $exe state --json | ConvertFrom-Json | Out-Null

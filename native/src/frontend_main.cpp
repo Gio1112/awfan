@@ -10,7 +10,7 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"1.1.2";
+constexpr wchar_t kVersion[] = L"1.1.3";
 
 class Handle {
 public:
@@ -107,6 +107,26 @@ bool has_option(int argc, wchar_t** argv, const std::wstring& option) {
     return false;
 }
 
+int profile_alias_index(const std::wstring& command) {
+    if (command == L"balanced") {
+        return 1;
+    }
+    if (command == L"balanced-performance"
+        || command == L"balancedperformance") {
+        return 2;
+    }
+    if (command == L"cool") {
+        return 3;
+    }
+    if (command == L"quiet") {
+        return 4;
+    }
+    if (command == L"performance") {
+        return 5;
+    }
+    return 0;
+}
+
 int run_core(int argc, wchar_t** argv) {
     const std::wstring executable = module_directory() + L"\\awfan-core.exe";
     if (GetFileAttributesW(executable.c_str()) == INVALID_FILE_ATTRIBUTES) {
@@ -156,6 +176,54 @@ int run_core(int argc, wchar_t** argv) {
     return static_cast<int>(exit_code);
 }
 
+int run_profile_alias(
+    int argc,
+    wchar_t** argv,
+    const int profile_index
+) {
+    std::vector<std::wstring> arguments{
+        argv[0],
+        L"auto",
+        std::to_wstring(profile_index)
+    };
+
+    for (int index = 2; index < argc; ++index) {
+        const std::wstring argument = argv[index];
+        if (argument != L"--yes" && argument != L"--json") {
+            throw std::runtime_error(
+                "Profile aliases accept only --yes and --json."
+            );
+        }
+        arguments.push_back(argument);
+    }
+
+    std::vector<wchar_t*> pointers;
+    pointers.reserve(arguments.size());
+    for (auto& argument : arguments) {
+        pointers.push_back(argument.data());
+    }
+
+    const int rewritten_argc = static_cast<int>(pointers.size());
+    wchar_t** rewritten_argv = pointers.data();
+
+    if (!awfan::is_process_elevated()) {
+        const auto result = awfan::forward_to_broker(
+            rewritten_argc,
+            rewritten_argv
+        );
+        if (result.has_value()) {
+            return *result;
+        }
+
+        throw std::runtime_error(
+            "The elevated background broker is unavailable. Re-run install.ps1 "
+            "from the latest awfan package, then run 'awfan broker-status'."
+        );
+    }
+
+    return run_core(rewritten_argc, rewritten_argv);
+}
+
 void print_help() {
     std::wcout
         << L"awfan " << kVersion << L"\n\n"
@@ -174,6 +242,12 @@ void print_help() {
         << L"  awfan max --yes [--json]\n"
         << L"  awfan profile <1-5> --yes [--json]\n"
         << L"  awfan auto <1-5> --yes [--json]\n\n"
+        << L"Profile aliases:\n"
+        << L"  awfan balanced --yes             Profile 1 / 0xA0\n"
+        << L"  awfan balanced-performance --yes Profile 2 / 0xA1\n"
+        << L"  awfan cool --yes                 Profile 3 / 0xA2\n"
+        << L"  awfan quiet --yes                Profile 4 / 0xA3\n"
+        << L"  awfan performance --yes          Profile 5 / 0xA4\n\n"
         << L"Background broker and updates:\n"
         << L"  awfan broker-status\n"
         << L"  awfan update --check\n"
@@ -235,6 +309,11 @@ int run_frontend(int argc, wchar_t** argv) {
             has_option(argc, argv, L"--check"),
             has_option(argc, argv, L"--force")
         );
+    }
+
+    const int alias_profile = profile_alias_index(command);
+    if (alias_profile != 0) {
+        return run_profile_alias(argc, argv, alias_profile);
     }
 
     if (awfan::command_requires_broker(command)
