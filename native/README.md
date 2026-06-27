@@ -9,17 +9,31 @@ cmake -S native -B build/native -A x64
 cmake --build build/native --config Release
 ```
 
-Run:
+The Release build creates:
 
-```powershell
-.\build\native\Release\awfan.exe doctor
-.\build\native\Release\awfan.exe status
+```text
+build\native\Release\awfan.exe
+build\native\Release\awfan-core.exe
+build\native\Release\awfan-broker.exe
 ```
 
-Create the portable Windows ZIP:
+Run the public frontend:
+
+```powershell
+.\build\native\Release\awfan.exe version
+.\build\native\Release\awfan.exe state --json
+```
+
+Install the protected background broker and frontend:
+
+```powershell
+.\install.ps1
+```
+
+Create the Windows x64 ZIP:
 
 ```powershell
 cmake --build build/native --config Release --target package
 ```
 
-awfan 1.0.0 is packaged for Windows x64 and validated on the Alienware 16X Aurora AC16251.
+awfan 1.1.0 adds a per-user elevated broker so ordinary terminals can access the AWCC provider without repeated UAC prompts.
