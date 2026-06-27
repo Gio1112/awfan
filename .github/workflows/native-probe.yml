@@ -41,7 +41,7 @@ jobs:
           $broker = Join-Path $root "awfan-broker.exe"
 
           $version = (& $exe version | Out-String).Trim()
-          if ($version -ne "awfan 1.1.1") {
+          if ($version -ne "awfan 1.1.2") {
             throw "Unexpected version output: $version"
           }
 
@@ -78,7 +78,7 @@ jobs:
         shell: pwsh
         run: cmake --build build/native --config Release --target package
 
-      - name: Verify package, installer and checksum
+      - name: Verify package, migration, repair and checksum
         shell: pwsh
         run: |
           $zip = Get-ChildItem ".\build\native" -Filter "awfan-*-windows-x64.zip" |
@@ -119,10 +119,44 @@ jobs:
           . (Join-Path $packageRoot.FullName "awfan-completion.ps1")
 
           $installDir = Join-Path $env:RUNNER_TEMP "awfan-install-smoke"
+          New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+
+          $legacyFiles = @(
+            "awfan.ps1",
+            "awfan.cmd",
+            "awfan-broker.ps1",
+            "awfan-updater.ps1",
+            "VERSION"
+          )
+
+          foreach ($file in $legacyFiles) {
+            Set-Content -LiteralPath (Join-Path $installDir $file) -Value "legacy"
+          }
+
           & (Join-Path $packageRoot.FullName "install.ps1") `
             -InstallDir $installDir `
             -NoPath `
             -NoBroker
+
+          foreach ($file in $legacyFiles) {
+            if (Test-Path -LiteralPath (Join-Path $installDir $file)) {
+              throw "Legacy migration did not remove $file"
+            }
+          }
+
+          foreach ($file in @(
+            "awfan.exe",
+            "awfan-core.exe",
+            "awfan-broker.exe",
+            "install.ps1",
+            "update.ps1",
+            "uninstall.ps1",
+            "LICENSE.txt"
+          )) {
+            if (-not (Test-Path -LiteralPath (Join-Path $installDir $file))) {
+              throw "The installed files are missing $file"
+            }
+          }
 
           & (Join-Path $installDir "awfan.exe") version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -131,18 +165,18 @@ jobs:
             ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          foreach ($file in @(
-            "awfan-core.exe",
-            "awfan-broker.exe",
-            "LICENSE.txt",
-            "update.ps1"
-          )) {
-            if (-not (Test-Path -LiteralPath (Join-Path $installDir $file))) {
-              throw "The installed files are missing $file"
-            }
+          & (Join-Path $installDir "install.ps1") `
+            -InstallDir $installDir `
+            -NoPath `
+            -NoBroker
+          if ($LASTEXITCODE -ne 0) {
+            throw "In-place repair installation failed."
           }
 
-          & (Join-Path $packageRoot.FullName "uninstall.ps1") `
+          & (Join-Path $installDir "awfan.exe") version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          & (Join-Path $installDir "uninstall.ps1") `
             -InstallDir $installDir `
             -KeepState `
             -NoBroker
