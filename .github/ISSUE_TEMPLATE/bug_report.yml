@@ -1,0 +1,101 @@
+name: Bug report
+description: Report incorrect behavior on a system where awfan already runs
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Do not use this form for security vulnerabilities. Redact computer names, usernames, paths, serial numbers, and service tags.
+
+  - type: input
+    id: model
+    attributes:
+      label: Alienware model
+      description: Exact model name, for example Alienware 16X Aurora AC16251.
+      placeholder: Alienware model
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2 x64
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: awfan version
+      description: Output from `awfan version`.
+      placeholder: awfan 1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: command_type
+    attributes:
+      label: Command type
+      options:
+        - Read-only command
+        - Experimental write command
+        - Installer or uninstaller
+        - Build or packaging
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and output
+      description: Paste the exact command and complete redacted output.
+      render: powershell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Redacted doctor output
+      description: Output from `awfan doctor --json`.
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: status
+    attributes:
+      label: Redacted status output
+      description: Output from `awfan status --json`.
+      render: json
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed personal information from all logs.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+        - label: I have read the troubleshooting guide.
+          required: true
