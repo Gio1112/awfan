@@ -53,6 +53,7 @@ install(TARGETS awfan awfan-core awfan-broker RUNTIME DESTINATION .)
 install(FILES
     package/install.ps1
     package/update.ps1
+    package/update-transaction.ps1
     package/uninstall.ps1
     package/awfan-completion.ps1
     package/README.txt

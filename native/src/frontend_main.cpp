@@ -506,7 +506,8 @@ awfan::BrokerResponse execute_manual_command(
         } else if (options.until_reboot) {
             awfan::save_timer_state({
                 restore_target->profile_index,
-                std::nullopt,
+                awfan::current_epoch_milliseconds()
+                    - static_cast<std::int64_t>(GetTickCount64()),
                 true
             });
         }
@@ -1100,14 +1101,16 @@ void print_mode(const bool json) {
     const auto timer = awfan::load_timer_state();
     if (timer.has_value()) {
         std::cout << "Safety restore: ";
-        if (timer->expires_epoch_ms.has_value()) {
+        if (timer->restore_on_start) {
+            std::cout << "after Windows restarts";
+        } else if (timer->expires_epoch_ms.has_value()) {
             const auto remaining = std::max<std::int64_t>(
                 0,
                 *timer->expires_epoch_ms - awfan::current_epoch_milliseconds()
             );
             std::cout << "in " << awfan::format_duration(remaining);
         } else {
-            std::cout << "on broker restart";
+            std::cout << "pending";
         }
         std::cout << '\n';
     }

@@ -482,10 +482,19 @@ void process_safety_timer(const bool broker_start) {
         return;
     }
 
-    const bool due =
-        (broker_start && timer->restore_on_start)
-        || (timer->expires_epoch_ms.has_value()
-            && current_epoch_milliseconds() >= *timer->expires_epoch_ms);
+    bool due = false;
+    if (timer->restore_on_start) {
+        if (broker_start) {
+            const std::int64_t current_boot =
+                current_epoch_milliseconds()
+                - static_cast<std::int64_t>(GetTickCount64());
+            due = !timer->expires_epoch_ms.has_value()
+                || std::llabs(current_boot - *timer->expires_epoch_ms) > 120000;
+        }
+    } else {
+        due = timer->expires_epoch_ms.has_value()
+            && current_epoch_milliseconds() >= *timer->expires_epoch_ms;
+    }
 
     if (!due) {
         return;
