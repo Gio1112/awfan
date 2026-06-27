@@ -1,0 +1,66 @@
+name: Feature request
+description: Suggest a new command, output format, compatibility improvement, or documentation change
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem first, then the proposed change. Hardware-write features need a clear safety model and tested fallback.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What limitation or workflow problem are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the command, behavior, output, or documentation you would add.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Read-only telemetry
+        - Hardware control
+        - Compatibility
+        - JSON or automation
+        - Installer or packaging
+        - Documentation
+        - Developer experience
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+
+  - type: textarea
+    id: safety
+    attributes:
+      label: Hardware safety considerations
+      description: Required for changes involving AWCC writes, fan control, or power profiles.
+    validations:
+      required: false
+
+  - type: input
+    id: model
+    attributes:
+      label: Relevant Alienware model
+      description: Enter not model-specific when applicable.
+      placeholder: Alienware model or not model-specific
+    validations:
+      required: true
