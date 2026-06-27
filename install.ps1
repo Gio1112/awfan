@@ -27,7 +27,7 @@ if (-not (Test-Path -LiteralPath $BuiltExe -PathType Leaf)) {
 The native awfan executable has not been built in this source checkout.
 
 Recommended installation:
-  Download awfan-1.0.0-windows-x64.zip from:
+  Download the latest awfan Windows x64 ZIP from:
   https://github.com/Gio1112/awfan/releases/latest
 
 Or build from source first:
@@ -43,7 +43,8 @@ $requiredPackageFiles = @(
     "awfan-completion.ps1",
     "README.txt",
     "CHANGELOG.txt",
-    "THIRD-PARTY-NOTICES.txt"
+    "THIRD-PARTY-NOTICES.txt",
+    "LICENSE.txt"
 )
 
 foreach ($file in $requiredPackageFiles) {
