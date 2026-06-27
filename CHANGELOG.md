@@ -2,6 +2,19 @@
 
 All notable public releases are documented here.
 
+## 1.1.1 — 2026-06-27
+
+### Fixed
+
+- Replaced the updater's `Get-FileHash` dependency with a direct .NET SHA-256 implementation.
+- Restored updates on Windows systems where `Microsoft.PowerShell.Utility` is unavailable or not auto-loaded.
+- Aligned the internal `awfan-core.exe` version with the public frontend version.
+
+### Notes
+
+- Downloaded release packages are still verified against the published SHA-256 checksum before installation.
+- Existing 1.0.1 installations contain the old updater script and need a one-time bootstrap replacement or manual 1.1.1 install.
+
 ## 1.1.0 — 2026-06-27
 
 ### Added
