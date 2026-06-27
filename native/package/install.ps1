@@ -17,6 +17,7 @@ New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
 
 $files = @(
     "awfan.exe",
+    "update.ps1",
     "uninstall.ps1",
     "awfan-completion.ps1",
     "README.txt",
@@ -67,6 +68,7 @@ if ($NoPath) {
     Write-Host "Open a new terminal, then run:"
     Write-Host "  awfan doctor"
     Write-Host "  awfan status"
+    Write-Host "  awfan update --check"
 }
 
 Write-Host "Optional PowerShell completion:"
