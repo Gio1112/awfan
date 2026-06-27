@@ -1,3 +1,35 @@
+# Build output
+build/
+out/
+.vs/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+_CPack_Packages/
+
+# Compiled files and packages
+*.exe
+*.dll
+*.obj
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.zip
+*.sha256
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.token
+*.secret
+
+# Logs and operating-system files
 *.log
 .DS_Store
 Thumbs.db
+Desktop.ini
