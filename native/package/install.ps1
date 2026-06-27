@@ -1,10 +1,11 @@
 [CmdletBinding()]
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\awfan",
+    [string]$InstallDir = "",
     [switch]$NoPath,
     [switch]$NoBroker,
     [string]$TargetUser = "",
-    [string]$TargetSid = ""
+    [string]$TargetSid = "",
+    [string]$PreviousInstallDir = ""
 )
 
 Set-StrictMode -Version Latest
@@ -14,6 +15,21 @@ function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Test-SamePath {
+    param(
+        [Parameter(Mandatory)][string]$Left,
+        [Parameter(Mandatory)][string]$Right
+    )
+
+    try {
+        return [IO.Path]::GetFullPath($Left).TrimEnd("\") -ieq `
+            [IO.Path]::GetFullPath($Right).TrimEnd("\")
+    }
+    catch {
+        return $Left.TrimEnd("\") -ieq $Right.TrimEnd("\")
+    }
 }
 
 function Copy-WithRetry {
@@ -36,6 +52,20 @@ function Copy-WithRetry {
     }
 }
 
+$userInstallDir = Join-Path $env:LOCALAPPDATA "Programs\awfan"
+$secureInstallDir = Join-Path $env:ProgramFiles "awfan"
+
+if (-not $InstallDir) {
+    $InstallDir = if ($NoBroker) { $userInstallDir } else { $secureInstallDir }
+}
+
+if (-not $NoBroker -and -not (Test-SamePath $InstallDir $secureInstallDir)) {
+    if (-not $PreviousInstallDir) {
+        $PreviousInstallDir = $InstallDir
+    }
+    $InstallDir = $secureInstallDir
+}
+
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 if (-not $TargetUser) {
     $TargetUser = $identity.Name
@@ -55,6 +85,9 @@ if (-not $NoBroker -and -not (Test-Administrator)) {
         "-TargetSid", "`"$TargetSid`""
     )
 
+    if ($PreviousInstallDir) {
+        $arguments += @("-PreviousInstallDir", "`"$PreviousInstallDir`"")
+    }
     if ($NoPath) {
         $arguments += "-NoPath"
     }
@@ -106,15 +139,23 @@ $taskName = "awfan Broker $TargetSid"
 $installedBroker = Join-Path $InstallDir "awfan-broker.exe"
 
 if (-not $NoBroker) {
-    $existingTask = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-    if ($existingTask) {
-        Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+    foreach ($name in @($taskName, "awfan Broker")) {
+        $existingTask = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
+        if ($existingTask) {
+            Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
+            if ($name -eq "awfan Broker") {
+                Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     Get-Process -Name "awfan-broker" -ErrorAction SilentlyContinue |
         Where-Object {
             try {
-                $_.Path -and $_.Path -ieq $installedBroker
+                $_.Path -and (
+                    $_.Path -ieq $installedBroker -or
+                    ($PreviousInstallDir -and $_.Path -ieq (Join-Path $PreviousInstallDir "awfan-broker.exe"))
+                )
             }
             catch {
                 $false
@@ -162,23 +203,23 @@ if (-not $NoBroker) {
     Start-ScheduledTask -TaskName $taskName
 }
 
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+$entries = @(
+    ($userPath -split ";") |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ }
+)
+
+$entries = @($entries | Where-Object {
+    -not (Test-SamePath $_ $InstallDir) -and
+    (-not $PreviousInstallDir -or -not (Test-SamePath $_ $PreviousInstallDir))
+})
+
 if (-not $NoPath) {
-    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    $entries = @(
-        ($userPath -split ";") |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ }
-    )
-
-    $alreadyPresent = $entries | Where-Object {
-        $_.TrimEnd("\") -ieq $InstallDir.TrimEnd("\")
-    }
-
-    if (-not $alreadyPresent) {
-        $newPath = (@($entries) + $InstallDir) -join ";"
-        [Environment]::SetEnvironmentVariable("Path", $newPath, "User")
-    }
+    $entries += $InstallDir
 }
+
+[Environment]::SetEnvironmentVariable("Path", ($entries -join ";"), "User")
 
 $installedExe = Join-Path $InstallDir "awfan.exe"
 $version = & $installedExe version
@@ -204,6 +245,17 @@ if ($NoBroker) {
     }
 
     Write-Host "Background broker: installed and running"
+}
+
+if ($PreviousInstallDir -and
+    -not (Test-SamePath $PreviousInstallDir $InstallDir) -and
+    (Test-Path -LiteralPath $PreviousInstallDir)) {
+    $command = "timeout /t 8 /nobreak >nul & rmdir /s /q `"$PreviousInstallDir`""
+    Start-Process `
+        -FilePath "$env:SystemRoot\System32\cmd.exe" `
+        -ArgumentList @("/d", "/c", $command) `
+        -WindowStyle Hidden | Out-Null
+    Write-Host "Previous installation scheduled for removal: $PreviousInstallDir"
 }
 
 if ($NoPath) {
