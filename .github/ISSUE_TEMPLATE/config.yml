@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/Gio1112/awfan/security
+    about: Report security problems privately through the Security tab.
+  - name: Troubleshooting guide
+    url: https://github.com/Gio1112/awfan/blob/main/docs/TROUBLESHOOTING.md
+    about: Check common installation, WMI, telemetry, and fan-control problems first.
