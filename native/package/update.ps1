@@ -68,6 +68,22 @@ function Get-Sha256Hex {
     }
 }
 
+function Invoke-IsolatedScript {
+    param(
+        [Parameter(Mandatory)][string]$Script,
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+
+    $powershell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+    $command = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$Script`"")
+    $command += $Arguments
+    $process = Start-Process `
+        -FilePath $powershell `
+        -ArgumentList ($command -join " ") `
+        -Wait `
+        -PassThru
+    return $process.ExitCode
+}
 $currentVersion = Get-InstalledVersion
 Write-Host "Installed version: $currentVersion"
 Write-Host "Checking GitHub Releases..."
@@ -104,6 +120,7 @@ $tempRoot = Join-Path $env:TEMP "awfan-update-$PID"
 $zipPath = Join-Path $tempRoot $zipName
 $checksumPath = Join-Path $tempRoot $checksumName
 $extractPath = Join-Path $tempRoot "extracted"
+$backupPath = Join-Path $tempRoot "rollback"
 
 Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $tempRoot | Out-Null
@@ -153,11 +170,48 @@ try {
         Wait-Process -Id $ParentPid -ErrorAction SilentlyContinue
     }
 
-    Write-Host "Installing awfan $latestVersion..."
-    & $installer.FullName -InstallDir $InstallDir
+    $transaction = Join-Path $installer.DirectoryName "update-transaction.ps1"
+    if (-not (Test-Path -LiteralPath $transaction -PathType Leaf)) {
+        throw "The downloaded package does not contain update-transaction.ps1."
+    }
 
-    Write-Host "Updated awfan to $latestVersion."
+    & $transaction -Action Backup -InstallDir $InstallDir -BackupDir $backupPath
+
+    try {
+        Write-Host "Installing awfan $latestVersion..."
+        $installCode = Invoke-IsolatedScript `
+            -Script $installer.FullName `
+            -Arguments @("-InstallDir", "`"$InstallDir`"")
+        if ($installCode -ne 0) {
+            throw "The installer exited with code $installCode."
+        }
+
+        Write-Host "Running post-update health checks..."
+        & $transaction `
+            -Action Health `
+            -InstallDir $InstallDir `
+            -BackupDir $backupPath `
+            -ExpectedVersion $latestVersion
+
+        Write-Host "Updated awfan to $latestVersion."
+    }
+    catch {
+        $failure = $_
+        Write-Warning "Update failed. Restoring awfan $currentVersion..."
+        $restoreCode = Invoke-IsolatedScript `
+            -Script $transaction `
+            -Arguments @(
+                "-Action", "Restore",
+                "-InstallDir", "`"$InstallDir`"",
+                "-BackupDir", "`"$backupPath`""
+            )
+        if ($restoreCode -ne 0) {
+            throw "Update failed and rollback also failed. $failure"
+        }
+        throw "Update failed and awfan was rolled back to $currentVersion. $failure"
+    }
 }
 finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
+
