@@ -2,6 +2,27 @@
 
 All notable public releases are documented here.
 
+## 1.0.1 — 2026-06-27
+
+### Added
+
+- `awfan update --check` for checking the latest stable GitHub release
+- `awfan update` for downloading, verifying, and installing the latest stable release
+- `awfan update --force` for reinstalling the latest stable release
+- SHA-256 verification before installing an update
+- Automatic extraction and unblocking of verified release packages
+
+### Changed
+
+- The updater now uses public GitHub Releases instead of Git branches or private access tokens.
+- Future stable updates no longer require Git or a local repository checkout.
+- The package installer now includes `update.ps1`.
+
+### Notes
+
+- Version 1.0.1 must be installed manually once because 1.0.0 does not contain the updater command.
+- AWCC WMI access may still require an elevated terminal on some systems.
+
 ## 1.0.0 — 2026-06-26
 
 ### Added
