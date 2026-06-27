@@ -21,7 +21,7 @@ Run the public frontend:
 
 ```powershell
 .\build\native\Release\awfan.exe version
-.\build\native\Release\awfan.exe state --json
+.\build\native\Release\awfan.exe help
 ```
 
 Install the protected background broker and frontend:
@@ -36,4 +36,4 @@ Create the Windows x64 ZIP:
 cmake --build build/native --config Release --target package
 ```
 
-awfan 1.1.1 includes the per-user elevated broker and a PowerShell-module-independent SHA-256 updater.
+awfan 1.2.0 adds friendly mode names, restoration and safety timers, custom presets, broker management, redacted reports, and transactional update recovery. See [`../docs/PLATFORM-1.2.md`](../docs/PLATFORM-1.2.md).
