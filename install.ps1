@@ -1,116 +1,80 @@
-# install.ps1
 [CmdletBinding()]
 param(
-    [string]$Backend = "C:\Tools\AlienFan\alienfan-cli.exe",
-    [switch]$Uninstall
+    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\awfan",
+    [switch]$Uninstall,
+    [switch]$NoPath
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$InstallRoot = Join-Path $env:ProgramFiles "awfan"
-$DataRoot = Join-Path $env:ProgramData "awfan"
-$BrokerTaskName = "awfan Broker"
-$UpdaterTaskName = "awfan Updater"
 $SourceRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-function Test-Admin {
-    $p = [Security.Principal.WindowsPrincipal]::new(
-        [Security.Principal.WindowsIdentity]::GetCurrent()
-    )
-    $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-}
-
-if (-not (Test-Admin)) {
-    $args = @("-NoProfile","-ExecutionPolicy","Bypass","-File","`"$PSCommandPath`"","-Backend","`"$Backend`"")
-    if ($Uninstall) { $args += "-Uninstall" }
-    $proc = Start-Process (Get-Process -Id $PID).Path -Verb RunAs -ArgumentList $args -Wait -PassThru
-    exit $proc.ExitCode
-}
+$BuiltExe = Join-Path $SourceRoot "build\native\Release\awfan.exe"
+$PackageRoot = Join-Path $SourceRoot "native\package"
 
 if ($Uninstall) {
-    Stop-ScheduledTask -TaskName $BrokerTaskName -ErrorAction SilentlyContinue
-    Stop-ScheduledTask -TaskName $UpdaterTaskName -ErrorAction SilentlyContinue
-    Unregister-ScheduledTask -TaskName $BrokerTaskName -Confirm:$false -ErrorAction SilentlyContinue
-    Unregister-ScheduledTask -TaskName $UpdaterTaskName -Confirm:$false -ErrorAction SilentlyContinue
-    Remove-Item $InstallRoot -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "awfan removed."
-    exit 0
+    $uninstaller = Join-Path $InstallDir "uninstall.ps1"
+    if (-not (Test-Path -LiteralPath $uninstaller -PathType Leaf)) {
+        throw "The native awfan uninstaller was not found at $uninstaller"
+    }
+
+    & $uninstaller
+    exit $LASTEXITCODE
 }
 
-if (-not (Test-Path -LiteralPath $Backend)) {
-    throw "alienfan-cli.exe was not found at $Backend"
+if (-not (Test-Path -LiteralPath $BuiltExe -PathType Leaf)) {
+    throw @"
+The native awfan executable has not been built in this source checkout.
+
+Recommended installation:
+  Download awfan-1.0.0-windows-x64.zip from:
+  https://github.com/Gio1112/awfan/releases/latest
+
+Or build from source first:
+  cmake -S native -B build/native -A x64
+  cmake --build build/native --config Release
+  .\install.ps1
+"@
 }
 
-New-Item -ItemType Directory -Force -Path $InstallRoot, $DataRoot | Out-Null
+$requiredPackageFiles = @(
+    "install.ps1",
+    "uninstall.ps1",
+    "awfan-completion.ps1",
+    "README.txt",
+    "CHANGELOG.txt",
+    "THIRD-PARTY-NOTICES.txt"
+)
 
-$mapping = @{
-    "src\awfan.ps1" = "awfan.ps1"
-    "src\awfan-broker.ps1" = "awfan-broker.ps1"
-    "src\awfan-updater.ps1" = "awfan-updater.ps1"
-    "bin\awfan.cmd" = "awfan.cmd"
-    "VERSION" = "VERSION"
-}
-
-foreach ($item in $mapping.GetEnumerator()) {
-    Copy-Item (Join-Path $SourceRoot $item.Key) (Join-Path $InstallRoot $item.Value) -Force
-}
-
-# Remove launchers from the older ZIP-based installation. Keeping these files
-# beside alienfan-cli.exe can cause PowerShell to resolve the legacy client
-# before the current installation in Program Files.
-$legacyRoot = Split-Path -Parent $Backend
-foreach ($legacyName in @("awfan.ps1", "awfan.cmd")) {
-    $legacyPath = Join-Path $legacyRoot $legacyName
-    if (Test-Path -LiteralPath $legacyPath) {
-        Remove-Item -LiteralPath $legacyPath -Force
-        Write-Host "Removed legacy launcher: $legacyPath"
+foreach ($file in $requiredPackageFiles) {
+    $path = Join-Path $PackageRoot $file
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "Required package file is missing: $path"
     }
 }
 
-@{ backend = $Backend } | ConvertTo-Json |
-    Set-Content (Join-Path $DataRoot "config.json") -Encoding utf8
+$staging = Join-Path $env:TEMP "awfan-source-install-$PID"
+Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $staging | Out-Null
 
-# Broker currently expects the standard backend location used by this project.
-# Keep a compatibility copy of the backend path in the process environment.
-[Environment]::SetEnvironmentVariable("AWFAN_BACKEND", $Backend, "User")
+try {
+    Copy-Item -LiteralPath $BuiltExe -Destination (Join-Path $staging "awfan.exe")
 
-$shell = (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source
-if (-not $shell) { $shell = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" }
-$user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
-$principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
-$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew
+    foreach ($file in $requiredPackageFiles) {
+        Copy-Item `
+            -LiteralPath (Join-Path $PackageRoot $file) `
+            -Destination (Join-Path $staging $file)
+    }
 
-$brokerAction = New-ScheduledTaskAction -Execute $shell -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$InstallRoot\awfan-broker.ps1`""
-$brokerTrigger = New-ScheduledTaskTrigger -AtLogOn -User $user
-Register-ScheduledTask -TaskName $BrokerTaskName -Action $brokerAction -Trigger $brokerTrigger -Principal $principal -Settings $settings -Force | Out-Null
+    $installer = Join-Path $staging "install.ps1"
+    if ($NoPath) {
+        & $installer -InstallDir $InstallDir -NoPath
+    } else {
+        & $installer -InstallDir $InstallDir
+    }
 
-$updateAction = New-ScheduledTaskAction -Execute $shell -Argument "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$InstallRoot\awfan-updater.ps1`""
-$updateTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 15) -RepetitionDuration (New-TimeSpan -Days 3650)
-Register-ScheduledTask -TaskName $UpdaterTaskName -Action $updateAction -Trigger $updateTrigger -Principal $principal -Settings $settings -Force | Out-Null
-
-# Put the current launcher first and remove duplicate entries.
-$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-$pathEntries = @(
-    $userPath -split ";" |
-        Where-Object {
-            -not [string]::IsNullOrWhiteSpace($_) -and
-            $_.TrimEnd("\\") -ine $InstallRoot.TrimEnd("\\")
-        }
-)
-[Environment]::SetEnvironmentVariable(
-    "Path",
-    ((@($InstallRoot) + $pathEntries) -join ";"),
-    "User"
-)
-
-$commit = ""
-try { $commit = (& git -C $SourceRoot rev-parse HEAD 2>$null).Trim() } catch {}
-if ($commit) { $commit | Set-Content (Join-Path $DataRoot "installed-commit.txt") -Encoding ascii }
-
-Start-ScheduledTask -TaskName $BrokerTaskName
-Start-ScheduledTask -TaskName $UpdaterTaskName
-
-Write-Host ""
-Write-Host "awfan installed to $InstallRoot"
-Write-Host "Open a new normal PowerShell window and run: awfan status"
+    exit $LASTEXITCODE
+}
+finally {
+    Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
+}
