@@ -1,7 +1,11 @@
 name: Fix 1.2.0 sources
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - release/1.2.0-platform
+    paths:
+      - .github/workflows/fix-1.2.0-sources.yml
 
 permissions:
   contents: write
