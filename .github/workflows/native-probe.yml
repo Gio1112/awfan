@@ -41,7 +41,7 @@ jobs:
           $broker = Join-Path $root "awfan-broker.exe"
 
           $version = (& $exe version | Out-String).Trim()
-          if ($version -ne "awfan 1.1.0") {
+          if ($version -ne "awfan 1.1.1") {
             throw "Unexpected version output: $version"
           }
 
@@ -64,6 +64,14 @@ jobs:
             -PassThru
           if ($brokerTest.ExitCode -ne 0) {
             throw "Broker self-test failed with exit code $($brokerTest.ExitCode)."
+          }
+
+          $updater = Get-Content ".\native\package\update.ps1" -Raw
+          if ($updater -match '\bGet-FileHash\b') {
+            throw "The updater must not depend on Get-FileHash."
+          }
+          if ($updater -notmatch 'System\.Security\.Cryptography\.SHA256') {
+            throw "The updater is missing the .NET SHA-256 implementation."
           }
 
       - name: Package ZIP

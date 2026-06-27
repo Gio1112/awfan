@@ -47,6 +47,27 @@ function Get-ReleaseAsset {
     return $asset
 }
 
+function Get-Sha256Hex {
+    param(
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha256 = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha256.ComputeHash($stream)
+            return -join ($bytes | ForEach-Object { $_.ToString("x2") })
+        }
+        finally {
+            $sha256.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
 $currentVersion = Get-InstalledVersion
 Write-Host "Installed version: $currentVersion"
 Write-Host "Checking GitHub Releases..."
@@ -102,7 +123,7 @@ try {
         -UseBasicParsing
 
     $expectedHash = ((Get-Content -LiteralPath $checksumPath -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
-    $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $actualHash = Get-Sha256Hex -Path $zipPath
 
     if ($expectedHash -notmatch '^[0-9a-f]{64}$') {
         throw "The release checksum file is invalid."
