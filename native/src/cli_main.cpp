@@ -1,6 +1,7 @@
 #include "awfan/awcc_exact.hpp"
 #include "awfan/awcc_raw.hpp"
 #include "awfan/native_cli.hpp"
+#include "awfan/update.hpp"
 #include "awfan/wmi_probe.hpp"
 
 #include <iostream>
@@ -10,7 +11,7 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"1.0.0";
+constexpr wchar_t kVersion[] = L"1.0.1";
 
 void print_presets() {
     std::wcout
@@ -41,6 +42,10 @@ void print_help() {
         << L"  awfan max --yes [--json]\n"
         << L"  awfan profile <1-5> --yes [--json]\n"
         << L"  awfan auto <1-5> --yes [--json]\n\n"
+        << L"Updates:\n"
+        << L"  awfan update --check\n"
+        << L"  awfan update\n"
+        << L"  awfan update --force\n\n"
         << L"Maintenance and diagnostics:\n"
         << L"  awfan clear-state\n"
         << L"  awfan raw-probe\n"
@@ -71,7 +76,10 @@ std::vector<std::wstring> positional_arguments(int argc, wchar_t** argv) {
     std::vector<std::wstring> values;
     for (int index = 2; index < argc; ++index) {
         const std::wstring value = argv[index];
-        if (value != L"--json" && value != L"--yes") {
+        if (value != L"--json"
+            && value != L"--yes"
+            && value != L"--check"
+            && value != L"--force") {
             values.push_back(value);
         }
     }
@@ -206,6 +214,16 @@ int run_command(int argc, wchar_t** argv) {
         }
         print_presets();
         return 0;
+    }
+    if (command == L"update") {
+        require_no_values(values, "update");
+        if (json || confirmed) {
+            throw std::runtime_error("update accepts only --check or --force.");
+        }
+        return awfan::run_update(
+            has_flag(argc, argv, L"--check"),
+            has_flag(argc, argv, L"--force")
+        );
     }
     if (command == L"clear-state") {
         require_no_values(values, "clear-state");

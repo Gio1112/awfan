@@ -37,11 +37,16 @@ jobs:
         shell: pwsh
         run: |
           $exe = ".\build\native\Release\awfan.exe"
-          & $exe version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = (& $exe version | Out-String).Trim()
+          if ($version -ne "awfan 1.0.1") {
+            throw "Unexpected version output: $version"
+          }
 
-          & $exe help | Out-Null
+          $help = (& $exe help | Out-String)
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($help -notmatch "awfan update --check") {
+            throw "Updater commands are missing from help output."
+          }
 
           & $exe state --json | ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -68,6 +73,7 @@ jobs:
           $required = @(
             "awfan.exe",
             "install.ps1",
+            "update.ps1",
             "uninstall.ps1",
             "awfan-completion.ps1",
             "README.txt",
@@ -92,8 +98,10 @@ jobs:
           & (Join-Path $installDir "awfan.exe") version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          if (-not (Test-Path -LiteralPath (Join-Path $installDir "LICENSE.txt"))) {
-            throw "The installed files are missing LICENSE.txt"
+          foreach ($file in @("LICENSE.txt", "update.ps1")) {
+            if (-not (Test-Path -LiteralPath (Join-Path $installDir $file))) {
+              throw "The installed files are missing $file"
+            }
           }
 
           & (Join-Path $packageRoot.FullName "uninstall.ps1") -InstallDir $installDir -KeepState

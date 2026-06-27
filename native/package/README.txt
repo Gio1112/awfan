@@ -1,4 +1,4 @@
-awfan 1.0.0
+awfan 1.0.1
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -33,6 +33,25 @@ Read commands
    awfan presets
    awfan doctor [--json]
    awfan state [--json]
+
+Updates
+-------
+Check for a newer stable GitHub release:
+
+   awfan update --check
+
+Download, verify, and install the latest stable release:
+
+   awfan update
+
+Force a reinstall of the latest release:
+
+   awfan update --force
+
+The updater downloads the ZIP and matching SHA-256 checksum from GitHub
+Releases. It does not use Git and does not require a repository checkout.
+Version 1.0.1 must be installed once manually before the built-in updater is
+available.
 
 Experimental control commands
 -----------------------------
