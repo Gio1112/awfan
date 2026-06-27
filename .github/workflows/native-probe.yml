@@ -1,9 +1,9 @@
-name: Native CLI
+name: Windows build
 
 on:
   push:
     branches:
-      - codex/native-backend-probe
+      - main
     paths:
       - native/**
       - .github/workflows/native-probe.yml
@@ -53,7 +53,12 @@ jobs:
       - name: Verify package, installer and checksum
         shell: pwsh
         run: |
-          $zip = Get-Item ".\build\native\awfan-1.0.0-windows-x64.zip"
+          $zip = Get-ChildItem ".\build\native" -Filter "awfan-*-windows-x64.zip" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $zip) { throw "The CPack ZIP was not created." }
+
           $extract = ".\build\native\package-smoke"
           Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extract -Force
 
@@ -91,9 +96,10 @@ jobs:
             throw "The temporary installation directory still exists after uninstall."
           }
 
+          $checksum = [System.IO.Path]::ChangeExtension($zip.FullName, ".sha256")
           $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
           "$($hash.Hash.ToLower())  $($zip.Name)" |
-            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-windows-x64.sha256"
+            Set-Content -Encoding ascii $checksum
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
@@ -105,10 +111,10 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: awfan-1.0.0-windows-x64
+          name: awfan-windows-x64-package
           path: |
-            build/native/awfan-1.0.0-windows-x64.zip
-            build/native/awfan-1.0.0-windows-x64.sha256
+            build/native/awfan-*-windows-x64.zip
+            build/native/awfan-*-windows-x64.sha256
           if-no-files-found: error
 
       - name: Upload build log
