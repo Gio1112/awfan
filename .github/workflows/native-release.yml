@@ -1,22 +1,28 @@
-name: Release awfan 1.0.0
+name: Release
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    tags:
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'Release awfan 1.0.0')
     runs-on: windows-latest
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          if (-not $version) { throw "Could not resolve the release version." }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Configure
         run: cmake -S native -B build/native -A x64
@@ -24,14 +30,20 @@ jobs:
       - name: Build
         run: cmake --build build/native --config Release --parallel
 
-      - name: Smoke test
+      - name: Smoke test and verify version
         shell: pwsh
         run: |
           $exe = ".\build\native\Release\awfan.exe"
-          & $exe version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $expected = "awfan ${{ steps.version.outputs.version }}"
+          $actual = (& $exe version | Out-String).Trim()
+
+          if ($actual -ne $expected) {
+            throw "CLI version '$actual' does not match tag '$expected'."
+          }
+
           & $exe help | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
           & $exe state --json | ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -41,22 +53,26 @@ jobs:
       - name: Create SHA-256 checksum
         shell: pwsh
         run: |
-          $zip = Get-Item ".\build\native\awfan-1.0.0-windows-x64.zip"
+          $zip = Get-ChildItem ".\build\native" -Filter "awfan-*-windows-x64.zip" |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (-not $zip) { throw "The release ZIP was not created." }
+
+          $checksum = [System.IO.Path]::ChangeExtension($zip.FullName, ".sha256")
           $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $zip.FullName
           "$($hash.Hash.ToLower())  $($zip.Name)" |
-            Set-Content -Encoding ascii ".\build\native\awfan-1.0.0-windows-x64.sha256"
+            Set-Content -Encoding ascii $checksum
 
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: v1.0.0
-          target_commitish: ${{ github.sha }}
-          name: awfan 1.0.0
+          name: awfan ${{ steps.version.outputs.version }}
           body_path: native/package/CHANGELOG.txt
           draft: false
           prerelease: false
           make_latest: true
           fail_on_unmatched_files: true
           files: |
-            build/native/awfan-1.0.0-windows-x64.zip
-            build/native/awfan-1.0.0-windows-x64.sha256
+            build/native/awfan-*-windows-x64.zip
+            build/native/awfan-*-windows-x64.sha256
