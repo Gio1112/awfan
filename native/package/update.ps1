@@ -92,12 +92,14 @@ try {
     Invoke-WebRequest `
         -Uri $zipAsset.browser_download_url `
         -Headers $headers `
-        -OutFile $zipPath
+        -OutFile $zipPath `
+        -UseBasicParsing
 
     Invoke-WebRequest `
         -Uri $checksumAsset.browser_download_url `
         -Headers $headers `
-        -OutFile $checksumPath
+        -OutFile $checksumPath `
+        -UseBasicParsing
 
     $expectedHash = ((Get-Content -LiteralPath $checksumPath -Raw).Trim() -split '\s+')[0].ToLowerInvariant()
     $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -132,9 +134,6 @@ try {
 
     Write-Host "Installing awfan $latestVersion..."
     & $installer.FullName -InstallDir $InstallDir
-    if ($LASTEXITCODE -ne 0) {
-        throw "The installer exited with code $LASTEXITCODE."
-    }
 
     Write-Host "Updated awfan to $latestVersion."
 }
