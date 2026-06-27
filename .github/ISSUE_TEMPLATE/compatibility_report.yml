@@ -1,0 +1,100 @@
+name: Compatibility report
+description: Share read-only results from another Alienware model
+title: "[Compatibility]: "
+labels:
+  - compatibility
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Compatibility reports are welcome. Read-only results are useful; do not test write commands just to complete this form. Remove all personal information from logs.
+
+  - type: input
+    id: model
+    attributes:
+      label: Exact Alienware model
+      placeholder: Alienware model and model number
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: Windows 11 24H2 x64
+    validations:
+      required: true
+
+  - type: input
+    id: awcc
+    attributes:
+      label: Alienware Command Center version
+      description: Enter unknown or not installed when applicable.
+      placeholder: Version, unknown, or not installed
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: awfan version
+      placeholder: awfan 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Redacted `awfan doctor --json` output
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: status
+    attributes:
+      label: Redacted `awfan status --json` output
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands tested
+      description: List only the commands you actually ran and whether each worked.
+      placeholder: |
+        awfan doctor --json — worked
+        awfan status --json — worked
+        awfan watch 2 — not tested
+    validations:
+      required: true
+
+  - type: dropdown
+    id: writes
+    attributes:
+      label: Were any write commands tested?
+      options:
+        - No, read-only testing only
+        - Yes, profile switching only
+        - Yes, manual boost
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Include unusual sensor names, implausible values, profile IDs, or other relevant observations.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmation
+      options:
+        - label: I removed computer names, usernames, paths, service tags, serial numbers, and other personal information.
+          required: true
+        - label: I understand that write support on unlisted models is experimental.
+          required: true
