@@ -7,7 +7,7 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         'temps',
         'watch',
         'profiles',
-        'presets',
+        'mode',
         'doctor',
         'state',
         'clear-state',
@@ -15,12 +15,16 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         'max',
         'profile',
         'auto',
+        'restore',
         'balanced',
         'balanced-performance',
         'cool',
         'quiet',
         'performance',
+        'preset',
+        'broker',
         'broker-status',
+        'report',
         'update',
         'raw-probe',
         'exact-probe',
@@ -62,6 +66,55 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
         return
     }
 
+    if ($command -eq 'mode' -and $tokens.Count -le 3) {
+        @(
+            'balanced',
+            'balanced-performance',
+            'cool',
+            'quiet',
+            'performance',
+            '1', '2', '3', '4', '5'
+        ) |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterValue',
+                    $_
+                )
+            }
+        return
+    }
+
+    if ($command -eq 'broker' -and $tokens.Count -le 3) {
+        @('status', 'restart', 'repair', 'logs') |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterValue',
+                    $_
+                )
+            }
+        return
+    }
+
+    if ($command -eq 'preset' -and $tokens.Count -le 3) {
+        @('create', 'list', 'apply', 'delete') |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterValue',
+                    $_
+                )
+            }
+        return
+    }
+
     if ($command -eq 'update') {
         @('--check', '--force') |
             Where-Object { $_ -like "$wordToComplete*" } |
@@ -78,6 +131,10 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
 
     $options = @('--json', '--yes')
 
+    if ($command -in @('boost', 'max', 'preset')) {
+        $options += '--for'
+        $options += '--until-reboot'
+    }
     if ($command -in @('probe', 'inspect-awcc')) {
         $options += '--namespace'
     }
