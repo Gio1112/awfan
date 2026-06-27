@@ -1,4 +1,4 @@
-awfan 1.1.3
+awfan 1.2.0
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -6,151 +6,162 @@ Native C++20 Alienware fan and thermal CLI for Windows.
 awfan is an independent community project and is not affiliated with or
 endorsed by Dell Technologies or Alienware.
 
-Quick install
--------------
-1. Extract the ZIP.
+Install
+-------
+1. Extract the release ZIP.
 2. Open PowerShell in the extracted folder.
 3. Run:
 
    .\install.ps1
 
-4. Approve the one administrator prompt used to install the background broker.
-5. Open a new terminal and run:
+4. Approve the administrator prompt for the protected background broker.
+5. Open a new terminal and verify:
 
-   awfan broker-status
+   awfan version
+   awfan broker status
    awfan doctor
    awfan status
 
-Legacy migration
-----------------
-The installer removes the retired 0.3 PowerShell command files that can shadow
-the native executable:
+The broker-enabled installation is stored in C:\Program Files\awfan. Every
+hardware-changing command still requires --yes.
 
-   awfan.ps1
-   awfan.cmd
-   awfan-broker.ps1
-   awfan-updater.ps1
-   VERSION
+Named modes
+-----------
+Read the current mode:
 
-It also removes the old awfan Broker and awfan Updater scheduled tasks. The
-installed directory contains install.ps1, so the installation can be repaired
-in place later with:
+   awfan mode
+   awfan mode --json
 
-   & "C:\Program Files\awfan\install.ps1"
+Select a mode:
 
-Background broker
------------------
-The installer creates an elevated scheduled task for the current Windows user.
-The task starts awfan-broker.exe at sign-in and keeps AWCC access in the
-background. Normal awfan commands are sent through a named pipe restricted to
-the current user, Administrators, and SYSTEM.
-
-The broker-enabled installation is stored at:
-
-   C:\Program Files\awfan
-
-This removes repeated UAC prompts for status, monitoring, profiles, and fan
-control. Every hardware-changing command still requires --yes.
-
-The broker pauses while Windows is asleep and continues after resume. Closing
-the lid only keeps it active when Windows is configured not to sleep.
-
-Check it with:
-
-   awfan broker-status
-
-Portable or broker-free installation
--------------------------------------
-The package can still be used directly from an elevated terminal. To install
-without the scheduled background broker:
-
-   .\install.ps1 -NoBroker
-
-A broker-free installation uses %LOCALAPPDATA%\Programs\awfan by default.
-Hardware commands may then require an elevated terminal.
-
-Read commands
--------------
-   awfan status [--json]
-   awfan fans [--json]
-   awfan temps [once|seconds] [--json]
-   awfan watch [seconds]
-   awfan profiles [--json]
-   awfan presets
-   awfan doctor [--json]
-   awfan state [--json]
-
-Updates
--------
-Check for a newer stable GitHub release:
-
-   awfan update --check
-
-Download, verify, and install the latest stable release:
-
-   awfan update
-
-The updater verifies the release SHA-256 checksum with the built-in .NET
-cryptography API. Updates that include the broker may request one administrator
-approval while replacing and restarting the scheduled task.
-
-Experimental control commands
------------------------------
-   awfan boost <cpu-value> <gpu-value> --yes
-   awfan max --yes
-   awfan profile <1-5> --yes
-   awfan auto <1-5> --yes
-
-Named profile aliases
----------------------
    awfan balanced --yes
    awfan balanced-performance --yes
    awfan cool --yes
    awfan quiet --yes
    awfan performance --yes
 
-The compact spelling `balancedperformance` is also accepted. Aliases support
---json and keep the same --yes safety confirmation as `profile` and `auto`.
+The unified form is also available:
 
-Alias mappings on the tested AC16251 are:
+   awfan mode cool --yes
+   awfan mode 3 --yes
 
-   balanced              1  0xA0  Balanced
-   balanced-performance  2  0xA1  Balanced Performance
-   cool                  3  0xA2  Cool
-   quiet                 4  0xA3  Quiet
-   performance           5  0xA4  Performance
+Mappings on the tested AC16251:
 
-Every control command requires --yes.
+   1  0xA0  Balanced
+   2  0xA1  Balanced Performance
+   3  0xA2  Cool
+   4  0xA3  Quiet
+   5  0xA4  Performance
 
-Boost values are firmware fan-boost inputs from 0 to 100. They are not target
-fan percentages and are not target RPM values. A boost command selects manual
-control. Use a discovered profile from 1 to 5 to return to dynamic firmware
-control.
+Manual control and restoration
+------------------------------
+Before manual boost, awfan remembers the active firmware profile. Return to it
+with:
 
-Run awfan profiles and awfan presets before changing profiles. Profile 0 is
-shown for diagnostics but is intentionally not accepted by the profile command.
+   awfan restore --yes
 
-State
------
-awfan stores its last command and RPM sample history at:
+Temporary manual control can restore automatically:
 
-   %LOCALAPPDATA%\awfan\state-v1.txt
+   awfan boost 55 55 --yes --for 20m
+   awfan max --yes --for 5m
+   awfan boost 45 50 --yes --until-reboot
 
-Clear it with:
+Durations support s, m, h, and d suffixes and are limited to seven days. The
+background broker owns the timer, so closing the terminal does not cancel it.
+The --until-reboot form restores after Windows next starts, not after a normal
+broker restart.
 
-   awfan clear-state
+Custom presets
+--------------
+Save and apply reusable raw firmware boost values:
 
-Uninstall
----------
+   awfan preset create gaming 70 70
+   awfan preset list
+   awfan preset gaming --yes
+   awfan preset gaming --yes --for 30m
+   awfan preset delete gaming
+
+Presets are stored in %LOCALAPPDATA%\awfan\presets.json.
+
+Broker management
+-----------------
+   awfan broker status
+   awfan broker status --json
+   awfan broker restart
+   awfan broker repair
+   awfan broker logs
+   awfan broker logs 100
+
+Status reports frontend, core, and broker versions, the broker PID and uptime,
+scheduled-task registration, and pipe reachability.
+
+Diagnostics
+-----------
+Create a redacted JSON support report:
+
+   awfan report
+   awfan report .\my-report.json
+
+The report includes Windows version, component versions, broker health, AWCC
+discovery, telemetry, profiles, local state, and recent broker logs. Computer
+names, usernames, and user-profile paths are redacted. Review any report before
+sharing it publicly.
+
+Updates and rollback
+--------------------
+   awfan update --check
+   awfan update
+   awfan update --force
+
+The updater downloads the latest stable GitHub release, verifies its published
+SHA-256 checksum, backs up the installed package, installs the update, and runs
+version, broker, and AWCC health checks. If those checks fail, it attempts to
+restore the previous version automatically.
+
+The first update from an older release into 1.2.0 is still performed by that
+older release's updater. Transactional rollback applies to updates started from
+1.2.0 and later.
+
+Monitoring
+----------
+   awfan status [--json]
+   awfan fans [--json]
+   awfan temps [once|seconds] [--json]
+   awfan watch [seconds]
+   awfan profiles [--json]
+   awfan mode [--json]
+   awfan doctor [--json]
+   awfan state [--json]
+
+Boost values are firmware inputs from 0 to 100. They are not target fan
+percentages and are not target RPM values. Profile 0 remains diagnostic-only.
+
+Portable installation
+---------------------
+Install without the scheduled broker:
+
+   .\install.ps1 -NoBroker
+
+This uses %LOCALAPPDATA%\Programs\awfan by default. AWCC commands may require an
+elevated terminal in this mode.
+
+Repair and uninstall
+--------------------
+Repair the protected installation:
+
+   awfan broker repair
+
+Uninstall:
+
    & "C:\Program Files\awfan\uninstall.ps1"
 
-The uninstaller removes current and legacy scheduled tasks. Use -KeepState to
-retain the local state file.
+Use -KeepState to retain local awfan state and presets.
 
 Compatibility
 -------------
-Validated on Alienware 16X Aurora AC16251 using the AWCC WMI provider in
-ROOT\WMI. Other Alienware systems may expose different resources or methods.
+Validated on Alienware 16X Aurora AC16251 using ROOT\WMI and
+AWCCWmiMethodFunction. Other Alienware systems may expose different resources
+or firmware behavior.
 
 License and notices
 -------------------
