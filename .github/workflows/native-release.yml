@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing or new release tag, for example v1.0.0
+        required: true
+        default: v1.0.0
+        type: string
 
 permissions:
   contents: write
@@ -20,8 +27,18 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}" -replace '^v', ''
-          if (-not $version) { throw "Could not resolve the release version." }
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $tag = "${{ inputs.tag }}"
+          } else {
+            $tag = "${{ github.ref_name }}"
+          }
+
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$') {
+            throw "Release tag '$tag' is not a supported semantic version tag."
+          }
+
+          $version = $tag -replace '^v', ''
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Configure
@@ -67,11 +84,14 @@ jobs:
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: awfan ${{ steps.version.outputs.version }}
           body_path: native/package/CHANGELOG.txt
           draft: false
           prerelease: false
           make_latest: true
+          overwrite_files: true
           fail_on_unmatched_files: true
           files: |
             build/native/awfan-*-windows-x64.zip
