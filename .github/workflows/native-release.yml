@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing or new release tag, for example v1.0.1
+        description: Existing or new release tag, for example v1.1.0
         required: true
-        default: v1.0.1
+        default: v1.1.0
         type: string
 
 permissions:
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' || contains(github.event.head_commit.message, 'Release awfan 1.0.1')
+    if: github.event_name == 'workflow_dispatch' || github.ref_type == 'tag' || startsWith(github.event.head_commit.message, 'Release awfan ')
     runs-on: windows-latest
 
     steps:
@@ -35,7 +35,8 @@ jobs:
           } elseif ("${{ github.ref_type }}" -eq "tag") {
             $tag = "${{ github.ref_name }}"
           } else {
-            $tag = "v1.0.1"
+            $versionFile = (Get-Content -LiteralPath ".\VERSION" -Raw).Trim()
+            $tag = "v$versionFile"
           }
 
           if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$') {
@@ -55,7 +56,9 @@ jobs:
       - name: Smoke test and verify version
         shell: pwsh
         run: |
-          $exe = ".\build\native\Release\awfan.exe"
+          $root = ".\build\native\Release"
+          $exe = Join-Path $root "awfan.exe"
+          $broker = Join-Path $root "awfan-broker.exe"
           $expected = "awfan ${{ steps.version.outputs.version }}"
           $actual = (& $exe version | Out-String).Trim()
 
@@ -68,6 +71,15 @@ jobs:
 
           & $exe state --json | ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $brokerTest = Start-Process `
+            -FilePath $broker `
+            -ArgumentList "--self-test" `
+            -Wait `
+            -PassThru
+          if ($brokerTest.ExitCode -ne 0) {
+            throw "Broker self-test failed with exit code $($brokerTest.ExitCode)."
+          }
 
       - name: Create package
         run: cmake --build build/native --config Release --target package
