@@ -631,7 +631,7 @@ void append_broker_log(const std::string_view message) {
 
 std::vector<std::string> tail_broker_log(const std::size_t line_count) {
     std::lock_guard lock(file_mutex());
-    std::ifstream input(fs::path(broker_log_path()));
+    std::ifstream input{fs::path(broker_log_path())};
     std::vector<std::string> lines;
     std::string line;
 
