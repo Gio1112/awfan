@@ -62,6 +62,15 @@ awfan stores its last command and previous RPM sample at `%LOCALAPPDATA%\awfan\s
 
 ## Packaging
 
-The ZIP contains `awfan.exe`, install and uninstall scripts, PowerShell completion, a README, changelog, and third-party notices. The installer uses `%LOCALAPPDATA%\Programs\awfan` and updates the current user's PATH.
+The ZIP contains:
+
+- `awfan.exe`
+- Install and uninstall scripts
+- PowerShell completion
+- Package README and changelog
+- MIT license
+- Third-party notices
+
+The installer uses `%LOCALAPPDATA%\Programs\awfan` and updates the current user's PATH.
 
 awfan 1.0.0 was validated on the Alienware 16X Aurora AC16251.
