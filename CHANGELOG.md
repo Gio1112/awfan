@@ -2,6 +2,31 @@
 
 All notable public releases are documented here.
 
+## 1.1.3 — 2026-06-27
+
+### Added
+
+- Named profile aliases: `balanced`, `balanced-performance`, `cool`, `quiet`, and `performance`
+- Compact `balancedperformance` spelling for Profile 2
+- PowerShell completion for all named aliases
+- JSON output support for alias commands
+
+### Behavior
+
+- Aliases map to the existing firmware profile indexes 1 through 5.
+- The frontend rewrites aliases to the existing indexed `auto` command before broker execution.
+- Every alias keeps the mandatory `--yes` confirmation.
+
+## 1.1.2 — 2026-06-27
+
+### Fixed
+
+- Removed retired v0.3 PowerShell files during installation so `awfan.ps1` and `awfan.cmd` cannot shadow the native `awfan.exe` command.
+- Removed the legacy `awfan Broker` and `awfan Updater` scheduled tasks during migration and uninstall.
+- Installed `install.ps1` into the final awfan directory for in-place repair.
+- Made repeated installation from `C:\Program Files\awfan` safe by skipping source-to-destination self-copies.
+- Added CI coverage for stale-file cleanup and repeated in-place installation.
+
 ## 1.1.1 — 2026-06-27
 
 ### Fixed
