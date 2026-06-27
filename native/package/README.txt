@@ -1,4 +1,4 @@
-awfan 1.1.0
+awfan 1.1.1
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -73,9 +73,10 @@ Download, verify, and install the latest stable release:
 
    awfan update
 
-The updater verifies the release SHA-256 checksum. Updates that include the
-broker may request one administrator approval while replacing and restarting
-the scheduled task.
+The updater verifies the release SHA-256 checksum with the built-in .NET
+cryptography API. It does not depend on the Get-FileHash PowerShell command.
+Updates that include the broker may request one administrator approval while
+replacing and restarting the scheduled task.
 
 Experimental control commands
 -----------------------------
