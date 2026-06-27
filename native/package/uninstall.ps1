@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$InstallDir = "$env:LOCALAPPDATA\Programs\awfan",
+    [string]$InstallDir = "",
     [switch]$KeepState,
     [switch]$NoBroker,
     [string]$TargetUser = "",
@@ -14,6 +14,10 @@ function Test-Administrator {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = [Security.Principal.WindowsPrincipal]::new($identity)
     return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+if (-not $InstallDir) {
+    $InstallDir = Split-Path -Parent $PSCommandPath
 }
 
 $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -55,10 +59,11 @@ if (-not $NoBroker) {
         throw "The elevated uninstaller must run as the same Windows user that installed awfan."
     }
 
-    $taskName = "awfan Broker $TargetSid"
-    if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
-        Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+    foreach ($taskName in @("awfan Broker $TargetSid", "awfan Broker")) {
+        if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+            Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+        }
     }
 
     $installedBroker = Join-Path $InstallDir "awfan-broker.exe"
@@ -90,7 +95,15 @@ $filtered = @($entries | Where-Object {
 [Environment]::SetEnvironmentVariable("Path", ($filtered -join ";"), "User")
 
 if (Test-Path -LiteralPath $InstallDir) {
-    Remove-Item -LiteralPath $InstallDir -Recurse -Force
+    if ($NoBroker) {
+        Remove-Item -LiteralPath $InstallDir -Recurse -Force
+    } else {
+        $command = "timeout /t 3 /nobreak >nul & rmdir /s /q `"$InstallDir`""
+        Start-Process `
+            -FilePath "$env:SystemRoot\System32\cmd.exe" `
+            -ArgumentList @("/d", "/c", $command) `
+            -WindowStyle Hidden | Out-Null
+    }
 }
 
 if (-not $KeepState) {
