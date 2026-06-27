@@ -24,7 +24,7 @@ Run the public frontend:
 .\build\native\Release\awfan.exe help
 ```
 
-Install the protected background broker and frontend:
+Install:
 
 ```powershell
 .\install.ps1
@@ -36,4 +36,4 @@ Create the Windows x64 ZIP:
 cmake --build build/native --config Release --target package
 ```
 
-awfan 1.2.0 adds friendly mode names, restoration and safety timers, custom presets, broker management, redacted reports, and transactional update recovery. See [`../docs/PLATFORM-1.2.md`](../docs/PLATFORM-1.2.md).
+awfan 1.2.0 adds friendly mode names, restoration timers, custom presets, broker tools, redacted reports, and update recovery. See [`../docs/PLATFORM-1.2.md`](../docs/PLATFORM-1.2.md).
