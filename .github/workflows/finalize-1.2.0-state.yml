@@ -1,0 +1,111 @@
+name: Finalize 1.2.0 state
+
+on:
+  push:
+    branches:
+      - release/1.2.0-platform
+    paths:
+      - .github/workflows/finalize-1.2.0-state.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.2.0-platform
+      - name: Finalize timers and package files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"Expected text missing in {path}")
+              file.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace(
+              "native/src/broker.cpp",
+              """    const bool due =
+                  (broker_start && timer->restore_on_start)
+                  || (timer->expires_epoch_ms.has_value()
+                      && current_epoch_milliseconds() >= *timer->expires_epoch_ms);""",
+              """    bool due = false;
+              if (timer->restore_on_start) {
+                  if (broker_start) {
+                      const std::int64_t current_boot =
+                          current_epoch_milliseconds()
+                          - static_cast<std::int64_t>(GetTickCount64());
+                      due = !timer->expires_epoch_ms.has_value()
+                          || std::llabs(current_boot - *timer->expires_epoch_ms) > 120000;
+                  }
+              } else {
+                  due = timer->expires_epoch_ms.has_value()
+                      && current_epoch_milliseconds() >= *timer->expires_epoch_ms;
+              }"""
+          )
+
+          replace(
+              "native/src/frontend_main.cpp",
+              """            awfan::save_timer_state({
+                          restore_target->profile_index,
+                          std::nullopt,
+                          true
+                      });""",
+              """            awfan::save_timer_state({
+                          restore_target->profile_index,
+                          awfan::current_epoch_milliseconds()
+                              - static_cast<std::int64_t>(GetTickCount64()),
+                          true
+                      });"""
+          )
+
+          replace(
+              "native/src/frontend_main.cpp",
+              """        if (timer->expires_epoch_ms.has_value()) {
+                      const auto remaining = std::max<std::int64_t>(
+                          0,
+                          *timer->expires_epoch_ms - awfan::current_epoch_milliseconds()
+                      );
+                      std::cout << \"in \" << awfan::format_duration(remaining);
+                  } else {
+                      std::cout << \"on broker restart\";
+                  }""",
+              """        if (timer->restore_on_start) {
+                      std::cout << \"after Windows restarts\";
+                  } else if (timer->expires_epoch_ms.has_value()) {
+                      const auto remaining = std::max<std::int64_t>(
+                          0,
+                          *timer->expires_epoch_ms - awfan::current_epoch_milliseconds()
+                      );
+                      std::cout << \"in \" << awfan::format_duration(remaining);
+                  } else {
+                      std::cout << \"pending\";
+                  }"""
+          )
+
+          additions = {
+              "native/CMakeLists.txt": ("    package/update.ps1\n", "    package/update-transaction.ps1\n"),
+              "native/package/install.ps1": ('    \"update.ps1\",\n', '    \"update-transaction.ps1\",\n'),
+              "install.ps1": ('    \"update.ps1\",\n', '    \"update-transaction.ps1\",\n')
+          }
+          for filename, (marker, addition) in additions.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              if addition not in text:
+                  if marker not in text:
+                      raise SystemExit(f"Package marker missing in {filename}")
+                  path.write_text(text.replace(marker, marker + addition), encoding="utf-8")
+          PY
+      - name: Commit final state changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add native install.ps1
+          git commit -m "Finalize awfan 1.2.0 safety state"
+          git push origin HEAD:release/1.2.0-platform
