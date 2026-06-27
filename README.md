@@ -11,7 +11,7 @@
 
 </div>
 
-awfan communicates directly with the Alienware Command Center WMI interface. The current native CLI is written in C++20 and does **not** require the external AlienFan CLI, Python, or PowerShell at runtime.
+awfan communicates directly with the Alienware Command Center WMI interface. The current native CLI is written in C++20 and does **not** require the external AlienFan CLI, Python, or PowerShell at runtime for fan and thermal commands.
 
 > [!IMPORTANT]
 > awfan is an independent community project. It is not affiliated with or endorsed by Dell Technologies or Alienware. Fan-control writes remain experimental and should be used carefully.
@@ -25,6 +25,7 @@ awfan communicates directly with the Alienware Command Center WMI interface. The
 - Current and available AWCC thermal profiles
 - Human-readable and versioned JSON output
 - Native manual fan-boost and firmware-profile controls
+- Verified self-updates from GitHub Releases
 - Portable Windows package with installer, uninstaller, checksum, and PowerShell completion
 - No background service or administrator-only installation required
 
@@ -61,6 +62,19 @@ awfan status
 ```
 
 The installer places awfan in `%LOCALAPPDATA%\Programs\awfan` and adds that directory to your user `PATH`. It does not require an elevated installation.
+
+### Updating
+
+Starting with awfan 1.0.1, future stable releases can be installed without downloading another ZIP manually:
+
+```powershell
+awfan update --check
+awfan update
+```
+
+The updater downloads the latest stable package and matching SHA-256 checksum from GitHub Releases, verifies the package, waits for the current awfan process to exit, and then runs the packaged installer. Git and a repository checkout are not required.
+
+Version 1.0.1 itself must be installed manually once because awfan 1.0.0 does not contain the updater command.
 
 ### Portable use
 
@@ -135,6 +149,9 @@ Profile `0` is intentionally diagnostic-only because it did not reliably clear a
 | `awfan max --yes` | Send maximum boost to both fans |
 | `awfan profile <1-5> --yes` | Select a discovered firmware profile |
 | `awfan auto <1-5> --yes` | Alias for `profile` |
+| `awfan update --check` | Check the latest stable GitHub release |
+| `awfan update` | Download, verify, and install the latest stable release |
+| `awfan update --force` | Reinstall the latest stable release |
 
 Run `awfan help` for the complete built-in reference.
 
@@ -193,7 +210,7 @@ cmake --build build/native --config Release --target package
 native/
   include/awfan/      Public native headers
   src/                C++ AWCC backend and CLI
-  package/            Installer, completion, notices, and package docs
+  package/            Installer, updater, completion, notices, and package docs
 .github/workflows/    Windows build and release automation
 docs/                 Compatibility, architecture, and troubleshooting docs
 src/                  Retired PowerShell prototype
