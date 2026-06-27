@@ -1,35 +1,47 @@
-awfan 1.0.1
+awfan 1.1.0
 ===========
 
 Added
 -----
-- Built-in `awfan update --check` command.
-- Built-in `awfan update` command for downloading and installing the latest
-  stable GitHub release.
-- `awfan update --force` for reinstalling the latest stable release.
-- SHA-256 verification before an update is installed.
-- Automatic extraction and removal of Windows download blocking from the
-  verified release package.
+- Native per-user elevated background broker.
+- Automatic broker startup at Windows sign-in through Task Scheduler.
+- Secure local named-pipe IPC restricted to the current user, Administrators,
+  and SYSTEM.
+- `awfan broker-status` for checking broker availability.
+- Broker restart settings and start-when-available behavior.
+- Broker-aware installer, updater, and uninstaller flows.
 
-Updater behavior
-----------------
-- Updates are downloaded from the public Gio1112/awfan GitHub Releases page.
-- Git and a local repository checkout are not required.
-- The updater waits for the current awfan process to exit before replacing the
-  executable.
-- Version 1.0.1 must be installed once manually. Future stable releases can be
-  installed through `awfan update`.
+Changed
+-------
+- Normal terminals can now run AWCC status, monitoring, profile, and fan-control
+  commands without repeated UAC prompts.
+- Hardware commands are forwarded to the elevated broker, which launches the
+  internal awfan-core executable and relays output and exit status.
+- The release package now contains awfan.exe, awfan-core.exe, and
+  awfan-broker.exe.
+- The installer requests one administrator approval to register the broker.
+- Updates may request one administrator approval while replacing the broker.
 
-Unchanged safety behavior
+Security
+--------
+- The broker accepts only an explicit allowlist of awfan hardware commands.
+- Arguments are passed directly to awfan-core.exe without a command shell.
+- Remote named-pipe clients are rejected.
+- The pipe access control list is scoped to the installing Windows user,
+  Administrators, and SYSTEM.
+- Existing --yes confirmation remains mandatory for every hardware write.
+
+Optional broker-free mode
 -------------------------
-- Every hardware-changing command still requires --yes.
-- Firmware boost values remain raw inputs rather than percentages or target
-  RPM values.
-- Profile zero remains diagnostic-only on the tested AC16251.
+CI, portable use, and advanced users may install with:
+
+  .\install.ps1 -NoBroker
+
+Hardware commands may require an elevated terminal in that mode.
 
 Known limitations
 -----------------
-- AWCC WMI access may require an elevated terminal on some systems.
+- The broker cannot run while Windows is asleep; it continues after resume.
 - Direct firmware fan-percent reads return -2 on the tested system, so awfan
   reports nominal RPM utilization from current RPM / nominal maximum RPM.
 - Live RPM may briefly exceed the firmware's reported nominal maximum.
