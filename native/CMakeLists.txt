@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan VERSION 1.0.0 LANGUAGES CXX)
+project(awfan VERSION 1.0.1 LANGUAGES CXX)
 
 add_executable(awfan
     src/cli_main.cpp
+    src/update.cpp
     src/native_cli_release.cpp
     src/wmi_probe.cpp
     src/awcc_inspect.cpp
@@ -31,6 +32,7 @@ endif()
 install(TARGETS awfan RUNTIME DESTINATION .)
 install(FILES
     package/install.ps1
+    package/update.ps1
     package/uninstall.ps1
     package/awfan-completion.ps1
     package/README.txt
