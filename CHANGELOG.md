@@ -19,12 +19,16 @@ All notable public releases are documented here.
 - PowerShell completion
 - SHA-256 release checksum
 - Windows CI packaging and installer smoke tests
+- MIT license and third-party attribution
+- Public compatibility, troubleshooting, architecture, security, and contribution documentation
+- Structured bug, compatibility, and feature-request forms
 
 ### Safety behavior
 
 - Manual boost values are reported as raw firmware inputs, not percentages or target RPM values.
 - Profile `0` is diagnostic-only because it did not reliably clear an existing manual boost on the tested AC16251.
 - Profiles `1` through `5` clear remembered manual boost values and return control to firmware.
+- The retired PowerShell updater and private-token setup are no longer part of the supported installation path.
 
 ### Known limitations
 
