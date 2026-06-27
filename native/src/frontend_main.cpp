@@ -329,7 +329,7 @@ ProfileSnapshot parse_profile_snapshot(const std::string& json) {
     if (std::regex_search(json, match, current) && match[1].str() != "null") {
         snapshot.current_raw = std::stoi(match[1].str());
     }
-    const std::regex mode(R"("rememberedControlMode"\s*:\s*"([^"]+)")");
+    const std::regex mode(R"AW("rememberedControlMode"\s*:\s*"([^"]+)")AW");
     if (std::regex_search(json, match, mode)) {
         snapshot.control_mode = match[1].str();
     }

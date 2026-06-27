@@ -514,7 +514,7 @@ std::vector<Preset> load_presets() {
     std::vector<Preset> presets;
 
     const std::regex item(
-        R"(\{\s*"name"\s*:\s*"([A-Za-z0-9_-]+)"\s*,\s*"cpu"\s*:\s*([0-9]{1,3})\s*,\s*"gpu"\s*:\s*([0-9]{1,3})\s*\})"
+        R"AW(\{\s*"name"\s*:\s*"([A-Za-z0-9_-]+)"\s*,\s*"cpu"\s*:\s*([0-9]{1,3})\s*,\s*"gpu"\s*:\s*([0-9]{1,3})\s*\})AW"
     );
 
     for (std::sregex_iterator iterator(text.begin(), text.end(), item), end;
