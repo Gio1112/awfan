@@ -11,7 +11,7 @@
 
 </div>
 
-awfan communicates directly with the Alienware Command Center WMI interface. The current native CLI is written in C++20 and does **not** require the external AlienFan CLI, Python, or PowerShell at runtime for fan and thermal commands.
+awfan communicates directly with the Alienware Command Center WMI interface. The native application is written in C++20 and does **not** require AlienFan CLI or Alienware Command Center to be open at runtime.
 
 > [!IMPORTANT]
 > awfan is an independent community project. It is not affiliated with or endorsed by Dell Technologies or Alienware. Fan-control writes remain experimental and should be used carefully.
@@ -25,9 +25,9 @@ awfan communicates directly with the Alienware Command Center WMI interface. The
 - Current and available AWCC thermal profiles
 - Human-readable and versioned JSON output
 - Native manual fan-boost and firmware-profile controls
+- Per-user elevated background broker for normal, non-admin terminals
 - Verified self-updates from GitHub Releases
 - Portable Windows package with installer, uninstaller, checksum, and PowerShell completion
-- No background service or administrator-only installation required
 
 ## Compatibility
 
@@ -42,43 +42,79 @@ See [Compatibility](docs/COMPATIBILITY.md) before testing another model.
 
 ## Install
 
-### Recommended: release package
+### Recommended installation
 
-1. Download the `awfan-<version>-windows-x64.zip` package and matching `.sha256` file from the [latest release](https://github.com/Gio1112/awfan/releases/latest).
-2. Extract the ZIP.
-3. Open PowerShell in the extracted folder.
+1. Download `awfan-<version>-windows-x64.zip` and its matching `.sha256` file from the [latest release](https://github.com/Gio1112/awfan/releases/latest).
+2. Unblock the ZIP before extracting it:
+
+```powershell
+Unblock-File .\awfan-<version>-windows-x64.zip
+```
+
+3. Extract the ZIP and open PowerShell in the extracted folder.
 4. Run:
 
 ```powershell
 .\install.ps1
 ```
 
-Open a new terminal, then verify the installation:
+5. Approve the single administrator prompt used to place the privileged broker components in `C:\Program Files\awfan` and register their scheduled task.
+6. Open a new terminal and verify:
 
 ```powershell
 awfan version
+awfan broker-status
 awfan doctor
 awfan status
 ```
 
-The installer places awfan in `%LOCALAPPDATA%\Programs\awfan` and adds that directory to your user `PATH`. It does not require an elevated installation.
+The public `awfan.exe` command remains available from your user `PATH`. Hardware commands are forwarded to the elevated broker, so normal terminals no longer need repeated UAC prompts.
+
+### Background broker
+
+The installer registers `awfan-broker.exe` as a per-user elevated scheduled task. It starts at sign-in, restarts after failures, and becomes available after resume.
+
+The broker:
+
+- Accepts only an explicit allowlist of awfan hardware commands
+- Uses a local named pipe restricted to the current user, Administrators, and SYSTEM
+- Rejects remote pipe clients
+- Launches the protected `awfan-core.exe` directly without a command shell
+- Preserves the `--yes` requirement for every hardware write
+
+Check it at any time:
+
+```powershell
+awfan broker-status
+```
+
+> [!NOTE]
+> The broker cannot execute while Windows itself is asleep. It resumes with Windows. Closing the lid only keeps awfan active when the plugged-in lid action is configured not to sleep.
+
+### Broker-free installation
+
+For portable use, CI, or advanced troubleshooting, install without the scheduled broker:
+
+```powershell
+.\install.ps1 -NoBroker
+```
+
+This uses `%LOCALAPPDATA%\Programs\awfan`. Hardware commands may require an elevated terminal in this mode.
 
 ### Updating
 
-Starting with awfan 1.0.1, future stable releases can be installed without downloading another ZIP manually:
+Starting with awfan 1.0.1, stable releases can be installed without manually downloading every ZIP:
 
 ```powershell
 awfan update --check
 awfan update
 ```
 
-The updater downloads the latest stable package and matching SHA-256 checksum from GitHub Releases, verifies the package, waits for the current awfan process to exit, and then runs the packaged installer. Git and a repository checkout are not required.
-
-Version 1.0.1 itself must be installed manually once because awfan 1.0.0 does not contain the updater command.
+The updater downloads the latest stable package and matching SHA-256 checksum from GitHub Releases, verifies the package, waits for the current awfan process to exit, and runs the packaged installer. Broker updates may request one administrator approval while replacing the protected files and scheduled task.
 
 ### Portable use
 
-No installation is required:
+You can run the extracted binaries without installation from an elevated terminal:
 
 ```powershell
 .\awfan.exe doctor
@@ -149,6 +185,7 @@ Profile `0` is intentionally diagnostic-only because it did not reliably clear a
 | `awfan max --yes` | Send maximum boost to both fans |
 | `awfan profile <1-5> --yes` | Select a discovered firmware profile |
 | `awfan auto <1-5> --yes` | Alias for `profile` |
+| `awfan broker-status` | Check whether the elevated broker is reachable |
 | `awfan update --check` | Check the latest stable GitHub release |
 | `awfan update` | Download, verify, and install the latest stable release |
 | `awfan update --force` | Reinstall the latest stable release |
@@ -179,10 +216,10 @@ git clone https://github.com/Gio1112/awfan.git
 cd awfan
 cmake -S native -B build/native -A x64
 cmake --build build/native --config Release
-.\build\native\Release\awfan.exe doctor
+.\build\native\Release\awfan.exe version
 ```
 
-Install the locally built executable:
+Install the locally built binaries and broker:
 
 ```powershell
 .\install.ps1
@@ -209,7 +246,7 @@ cmake --build build/native --config Release --target package
 ```text
 native/
   include/awfan/      Public native headers
-  src/                C++ AWCC backend and CLI
+  src/                Frontend, broker, core, and AWCC backend
   package/            Installer, updater, completion, notices, and package docs
 .github/workflows/    Windows build and release automation
 docs/                 Compatibility, architecture, and troubleshooting docs
