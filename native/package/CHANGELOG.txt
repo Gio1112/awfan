@@ -1,30 +1,40 @@
-awfan 1.1.1
+awfan 1.1.2
 ===========
 
 Fixed
 -----
-- Replaced the updater's `Get-FileHash` dependency with a direct .NET SHA-256
-  implementation.
-- Restored updates on Windows installations where the
-  Microsoft.PowerShell.Utility module is unavailable or not auto-loaded.
-- Aligned the internal awfan-core version with the public frontend version.
+- Removed retired v0.3 PowerShell files during installation so awfan.ps1 and
+  awfan.cmd can no longer shadow the native awfan.exe command.
+- Removed the old awfan Broker and awfan Updater scheduled tasks during
+  migration and uninstall.
+- Installed install.ps1 into the final awfan directory so the installation can
+  be repaired in place.
+- Made the installer safe to run from its own installed directory by skipping
+  source-to-destination self-copies.
+- Added migration tests for stale v0.3 files and repeated in-place installation.
 
-Updater compatibility
----------------------
-The updater still verifies the downloaded release ZIP against its published
-SHA-256 checksum before installing it. The verification now uses
-System.Security.Cryptography.SHA256 and works in both Windows PowerShell 5.1
-and PowerShell 7 without relying on `Get-FileHash`.
+Migration behavior
+------------------
+The installer now deletes these retired files when they are found in the target
+directory:
 
-Bootstrap note for awfan 1.0.1
-------------------------------
-An already-installed 1.0.1 updater contains the old hashing command. Replace
-its update.ps1 once with the current release copy, or install 1.1.1 manually.
-Future updates will use the fixed updater.
+  awfan.ps1
+  awfan.cmd
+  awfan-broker.ps1
+  awfan-updater.ps1
+  VERSION
+
+After updating, PowerShell should resolve awfan to awfan.exe rather than the
+retired 0.3 script.
+
+Repair
+------
+A broker-enabled installation can be repaired with:
+
+  & "C:\Program Files\awfan\install.ps1"
 
 Unchanged
 ---------
-- The secure per-user elevated background broker from 1.1.0 remains included.
+- The secure elevated background broker remains enabled by default.
+- Release packages are verified with SHA-256 before update installation.
 - Every hardware-changing command still requires --yes.
-- Firmware boost values remain raw inputs rather than percentages or target
-  RPM values.

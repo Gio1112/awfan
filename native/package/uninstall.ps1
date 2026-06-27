@@ -59,10 +59,17 @@ if (-not $NoBroker) {
         throw "The elevated uninstaller must run as the same Windows user that installed awfan."
     }
 
-    foreach ($taskName in @("awfan Broker $TargetSid", "awfan Broker")) {
+    foreach ($taskName in @(
+        "awfan Broker $TargetSid",
+        "awfan Broker",
+        "awfan Updater"
+    )) {
         if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
             Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
-            Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
+            Unregister-ScheduledTask `
+                -TaskName $taskName `
+                -Confirm:$false `
+                -ErrorAction SilentlyContinue
         }
     }
 

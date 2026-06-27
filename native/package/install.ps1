@@ -38,6 +38,10 @@ function Copy-WithRetry {
         [Parameter(Mandatory)][string]$Destination
     )
 
+    if (Test-SamePath $Source $Destination) {
+        return
+    }
+
     for ($attempt = 1; $attempt -le 20; $attempt++) {
         try {
             Copy-Item -LiteralPath $Source -Destination $Destination -Force
@@ -48,6 +52,32 @@ function Copy-WithRetry {
                 throw
             }
             Start-Sleep -Milliseconds 250
+        }
+    }
+}
+
+function Remove-LegacyInstallArtifacts {
+    param(
+        [Parameter(Mandatory)][string]$Directory
+    )
+
+    if (-not (Test-Path -LiteralPath $Directory -PathType Container)) {
+        return
+    }
+
+    $legacyFiles = @(
+        "awfan.ps1",
+        "awfan.cmd",
+        "awfan-broker.ps1",
+        "awfan-updater.ps1",
+        "VERSION"
+    )
+
+    foreach ($file in $legacyFiles) {
+        $path = Join-Path $Directory $file
+        if (Test-Path -LiteralPath $path -PathType Leaf) {
+            Remove-Item -LiteralPath $path -Force
+            Write-Host "Removed legacy file: $path"
         }
     }
 }
@@ -119,6 +149,7 @@ $requiredFiles = @(
     "awfan.exe",
     "awfan-core.exe",
     "awfan-broker.exe",
+    "install.ps1",
     "update.ps1",
     "uninstall.ps1",
     "awfan-completion.ps1",
@@ -139,12 +170,17 @@ $taskName = "awfan Broker $TargetSid"
 $installedBroker = Join-Path $InstallDir "awfan-broker.exe"
 
 if (-not $NoBroker) {
-    foreach ($name in @($taskName, "awfan Broker")) {
+    foreach ($name in @($taskName, "awfan Broker", "awfan Updater")) {
         $existingTask = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
         if ($existingTask) {
             Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
-            if ($name -eq "awfan Broker") {
-                Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction SilentlyContinue
+
+            if ($name -ne $taskName) {
+                Unregister-ScheduledTask `
+                    -TaskName $name `
+                    -Confirm:$false `
+                    -ErrorAction SilentlyContinue
+                Write-Host "Removed legacy scheduled task: $name"
             }
         }
     }
@@ -167,6 +203,7 @@ if (-not $NoBroker) {
 }
 
 New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+Remove-LegacyInstallArtifacts -Directory $InstallDir
 
 foreach ($file in $requiredFiles) {
     Copy-WithRetry `
@@ -262,10 +299,13 @@ if ($NoPath) {
     Write-Host "PATH was not modified."
 } else {
     Write-Host "Open a new terminal, then run:"
+    Write-Host "  Get-Command awfan -All"
     Write-Host "  awfan broker-status"
     Write-Host "  awfan doctor"
     Write-Host "  awfan status"
 }
 
+Write-Host "Repair this installation later with:"
+Write-Host "  & '$InstallDir\install.ps1'"
 Write-Host "Future updates:"
 Write-Host "  awfan update"

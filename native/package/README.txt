@@ -1,4 +1,4 @@
-awfan 1.1.1
+awfan 1.1.2
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.
@@ -20,6 +20,23 @@ Quick install
    awfan broker-status
    awfan doctor
    awfan status
+
+Legacy migration
+----------------
+The installer removes the retired 0.3 PowerShell command files that can shadow
+the native executable:
+
+   awfan.ps1
+   awfan.cmd
+   awfan-broker.ps1
+   awfan-updater.ps1
+   VERSION
+
+It also removes the old awfan Broker and awfan Updater scheduled tasks. The
+installed directory now contains install.ps1, so the installation can be
+repaired in place later with:
+
+   & "C:\Program Files\awfan\install.ps1"
 
 Background broker
 -----------------
@@ -74,9 +91,8 @@ Download, verify, and install the latest stable release:
    awfan update
 
 The updater verifies the release SHA-256 checksum with the built-in .NET
-cryptography API. It does not depend on the Get-FileHash PowerShell command.
-Updates that include the broker may request one administrator approval while
-replacing and restarting the scheduled task.
+cryptography API. Updates that include the broker may request one administrator
+approval while replacing and restarting the scheduled task.
 
 Experimental control commands
 -----------------------------
@@ -117,8 +133,8 @@ Uninstall
 ---------
    & "C:\Program Files\awfan\uninstall.ps1"
 
-The uninstaller removes the scheduled broker task. Use -KeepState to retain the
-local state file.
+The uninstaller removes current and legacy scheduled tasks. Use -KeepState to
+retain the local state file.
 
 Compatibility
 -------------
