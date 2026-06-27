@@ -1,9 +1,14 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
+#include <cstdlib>
+#include <ctime>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace awfan {
