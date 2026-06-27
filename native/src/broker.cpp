@@ -1,4 +1,5 @@
 #include "awfan/broker.hpp"
+#include "awfan/platform_features.hpp"
 
 #include <windows.h>
 #include <sddl.h>
@@ -6,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -19,6 +21,7 @@ namespace {
 constexpr std::uint32_t kMaximumArguments = 64;
 constexpr std::uint32_t kMaximumArgumentCharacters = 8192;
 constexpr std::uint32_t kMaximumFrameBytes = 1024U * 1024U;
+constexpr wchar_t kBrokerVersion[] = L"1.2.0";
 
 class Handle {
 public:
@@ -139,7 +142,7 @@ std::wstring module_directory() {
 }
 
 bool command_allowed(const std::wstring& command) {
-    static constexpr std::array<std::wstring_view, 16> commands{
+    static constexpr std::array<std::wstring_view, 17> commands{
         L"status",
         L"fans",
         L"temps",
@@ -155,7 +158,8 @@ bool command_allowed(const std::wstring& command) {
         L"diagnose",
         L"exact-probe",
         L"probe",
-        L"inspect-awcc"
+        L"inspect-awcc",
+        L"broker-restart"
     };
 
     return std::find(commands.begin(), commands.end(), command) != commands.end();
@@ -310,6 +314,16 @@ bool send_request(HANDLE pipe, int argc, wchar_t** argv) {
     return true;
 }
 
+std::wstring core_command_line(const std::vector<std::wstring>& arguments) {
+    const std::wstring executable = module_directory() + L"\\awfan-core.exe";
+    std::wstring command_line = quote_argument(executable);
+    for (const auto& argument : arguments) {
+        command_line += L" ";
+        command_line += quote_argument(argument);
+    }
+    return command_line;
+}
+
 void execute_request(HANDLE client, const std::vector<std::wstring>& arguments) {
     SECURITY_ATTRIBUTES inherited{};
     inherited.nLength = sizeof(inherited);
@@ -342,11 +356,7 @@ void execute_request(HANDLE client, const std::vector<std::wstring>& arguments) 
     }
 
     const std::wstring executable = module_directory() + L"\\awfan-core.exe";
-    std::wstring command_line = quote_argument(executable);
-    for (const auto& argument : arguments) {
-        command_line += L" ";
-        command_line += quote_argument(argument);
-    }
+    std::wstring command_line = core_command_line(arguments);
 
     STARTUPINFOW startup{};
     startup.cb = sizeof(startup);
@@ -413,12 +423,162 @@ void execute_request(HANDLE client, const std::vector<std::wstring>& arguments) 
     }
 }
 
+int execute_background_core(const std::vector<std::wstring>& arguments) {
+    SECURITY_ATTRIBUTES inherited{};
+    inherited.nLength = sizeof(inherited);
+    inherited.bInheritHandle = TRUE;
+
+    Handle null_handle(CreateFileW(
+        L"NUL",
+        GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        &inherited,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        nullptr
+    ));
+    if (!null_handle.valid()) {
+        return 1;
+    }
+
+    const std::wstring executable = module_directory() + L"\\awfan-core.exe";
+    std::wstring command_line = core_command_line(arguments);
+
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    startup.dwFlags = STARTF_USESTDHANDLES;
+    startup.hStdInput = null_handle.get();
+    startup.hStdOutput = null_handle.get();
+    startup.hStdError = null_handle.get();
+
+    PROCESS_INFORMATION process{};
+    if (!CreateProcessW(
+            executable.c_str(),
+            command_line.data(),
+            nullptr,
+            nullptr,
+            TRUE,
+            CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+            nullptr,
+            module_directory().c_str(),
+            &startup,
+            &process
+        )) {
+        return static_cast<int>(GetLastError());
+    }
+
+    Handle process_handle(process.hProcess);
+    Handle thread_handle(process.hThread);
+    WaitForSingleObject(process_handle.get(), INFINITE);
+
+    DWORD exit_code = 1;
+    GetExitCodeProcess(process_handle.get(), &exit_code);
+    return static_cast<int>(exit_code);
+}
+
+void process_safety_timer(const bool broker_start) {
+    const auto timer = load_timer_state();
+    if (!timer.has_value()) {
+        return;
+    }
+
+    const bool due =
+        (broker_start && timer->restore_on_start)
+        || (timer->expires_epoch_ms.has_value()
+            && current_epoch_milliseconds() >= *timer->expires_epoch_ms);
+
+    if (!due) {
+        return;
+    }
+
+    append_broker_log(
+        "Restoring firmware profile "
+        + std::to_string(timer->restore_profile_index)
+        + (broker_start ? " after broker start" : " after safety timer")
+    );
+
+    const int result = execute_background_core({
+        L"auto",
+        std::to_wstring(timer->restore_profile_index),
+        L"--yes"
+    });
+
+    if (result == 0) {
+        clear_timer_state();
+        append_broker_log("Safety restore completed successfully");
+    } else {
+        append_broker_log(
+            "Safety restore failed with exit code " + std::to_string(result)
+        );
+    }
+}
+
+void timer_loop() {
+    while (true) {
+        try {
+            process_safety_timer(false);
+        } catch (const std::exception& error) {
+            append_broker_log(std::string("Timer error: ") + error.what());
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+}
+
+void spawn_restart_helper() {
+    const std::wstring executable = module_directory() + L"\\awfan-broker.exe";
+    std::wstring command_line = quote_argument(executable)
+        + L" --restart-helper " + std::to_wstring(GetCurrentProcessId());
+
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process{};
+
+    if (!CreateProcessW(
+            executable.c_str(),
+            command_line.data(),
+            nullptr,
+            nullptr,
+            FALSE,
+            CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
+            nullptr,
+            module_directory().c_str(),
+            &startup,
+            &process
+        )) {
+        throw windows_error("Starting the broker restart helper");
+    }
+
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
+}
+
 void serve_client(HANDLE raw_pipe) {
     Handle pipe(raw_pipe);
 
     try {
-        execute_request(pipe.get(), receive_request(pipe.get()));
+        const std::vector<std::wstring> arguments = receive_request(pipe.get());
+        append_broker_log(
+            "Command: " + utf8_from_wide(arguments.front())
+        );
+
+        if (arguments.front() == L"broker-restart") {
+            const std::string message = "Broker restart requested.\n";
+            send_frame(
+                pipe.get(),
+                message.data(),
+                static_cast<std::uint32_t>(message.size())
+            );
+            send_result(pipe.get(), 0);
+            FlushFileBuffers(pipe.get());
+            DisconnectNamedPipe(pipe.get());
+            append_broker_log("Restart helper started");
+            spawn_restart_helper();
+            ExitProcess(0);
+        }
+
+        execute_request(pipe.get(), arguments);
     } catch (const std::exception& error) {
+        append_broker_log(std::string("Request error: ") + error.what());
         const std::string message = std::string("awfan broker: ")
             + error.what() + "\n";
         send_frame(
@@ -514,7 +674,7 @@ bool broker_is_available() {
     }
 }
 
-std::optional<int> forward_to_broker(int argc, wchar_t** argv) {
+std::optional<BrokerResponse> request_broker(int argc, wchar_t** argv) {
     const std::wstring name = broker_pipe_name();
     if (!WaitNamedPipeW(name.c_str(), 3000)) {
         return std::nullopt;
@@ -537,7 +697,7 @@ std::optional<int> forward_to_broker(int argc, wchar_t** argv) {
         throw std::runtime_error("Could not send the command to the awfan broker.");
     }
 
-    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    BrokerResponse response;
 
     while (true) {
         std::uint32_t bytes = 0;
@@ -550,22 +710,43 @@ std::optional<int> forward_to_broker(int argc, wchar_t** argv) {
             if (!read_all(pipe.get(), &exit_code, sizeof(exit_code))) {
                 throw std::runtime_error("The awfan broker omitted the command result.");
             }
-            return static_cast<int>(exit_code);
+            response.exit_code = static_cast<int>(exit_code);
+            return response;
         }
 
         if (bytes > kMaximumFrameBytes) {
             throw std::runtime_error("The awfan broker returned an invalid output frame.");
         }
 
-        std::vector<unsigned char> frame(bytes);
-        if (!read_all(pipe.get(), frame.data(), bytes)) {
+        const std::size_t previous_size = response.output.size();
+        response.output.resize(previous_size + bytes);
+        if (!read_all(
+                pipe.get(),
+                response.output.data() + previous_size,
+                bytes
+            )) {
             throw std::runtime_error("The awfan broker output ended unexpectedly.");
         }
-
-        if (!write_all(output, frame.data(), bytes)) {
-            return 1;
-        }
     }
+}
+
+std::optional<int> forward_to_broker(int argc, wchar_t** argv) {
+    const auto response = request_broker(argc, argv);
+    if (!response.has_value()) {
+        return std::nullopt;
+    }
+
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (!response->output.empty()
+        && !write_all(
+            output,
+            response->output.data(),
+            static_cast<std::uint32_t>(response->output.size())
+        )) {
+        return 1;
+    }
+
+    return response->exit_code;
 }
 
 int run_broker_self_test() {
@@ -597,9 +778,24 @@ int run_broker_server() {
         return 0;
     }
 
+    append_broker_log(
+        "Broker " + utf8_from_wide(kBrokerVersion)
+        + " started, PID " + std::to_string(GetCurrentProcessId())
+    );
+
+    try {
+        process_safety_timer(true);
+    } catch (const std::exception& error) {
+        append_broker_log(std::string("Startup timer error: ") + error.what());
+    }
+    std::thread(timer_loop).detach();
+
     while (true) {
         const HANDLE pipe = create_pipe_instance();
         if (pipe == INVALID_HANDLE_VALUE) {
+            append_broker_log(
+                "CreateNamedPipe failed with " + std::to_string(GetLastError())
+            );
             return static_cast<int>(GetLastError());
         }
 
