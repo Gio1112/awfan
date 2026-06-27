@@ -36,4 +36,4 @@ Create the Windows x64 ZIP:
 cmake --build build/native --config Release --target package
 ```
 
-awfan 1.1.0 adds a per-user elevated broker so ordinary terminals can access the AWCC provider without repeated UAC prompts.
+awfan 1.1.1 includes the per-user elevated broker and a PowerShell-module-independent SHA-256 updater.
