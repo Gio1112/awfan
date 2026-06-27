@@ -2,6 +2,39 @@
 
 All notable public releases are documented here.
 
+## 1.1.0 — 2026-06-27
+
+### Added
+
+- Native per-user elevated background broker
+- Automatic broker startup at Windows sign-in through Task Scheduler
+- Secure local named-pipe IPC restricted to the current user, Administrators, and SYSTEM
+- `awfan broker-status` for checking broker availability
+- Protected `awfan-core.exe` and `awfan-broker.exe` components installed in `C:\Program Files\awfan`
+- Broker restart and start-when-available task settings
+- Optional `-NoBroker` installation mode for portable use and CI
+
+### Changed
+
+- Normal terminals can now use AWCC status, monitoring, profile, and fan-control commands without repeated UAC prompts.
+- Hardware commands are forwarded to the elevated broker, which executes only an explicit command allowlist.
+- The broker launches `awfan-core.exe` directly without a command shell and relays output and exit status.
+- The installer requests one administrator approval and migrates older per-user installations to the protected Program Files location.
+- Updates may request one administrator approval while replacing and restarting the broker.
+- Release publishing is now driven by the repository `VERSION` file rather than a hardcoded version.
+
+### Security
+
+- Privileged binaries are stored in an administrator-writable directory rather than `%LOCALAPPDATA%`.
+- Remote named-pipe clients are rejected.
+- The broker pipe ACL is scoped to the installing Windows user, Administrators, and SYSTEM.
+- Every hardware write continues to require `--yes`.
+
+### Known limitations
+
+- The broker cannot run while Windows itself is asleep; it continues after resume.
+- Write support remains validated only on the Alienware 16X Aurora AC16251.
+
 ## 1.0.1 — 2026-06-27
 
 ### Added
