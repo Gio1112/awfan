@@ -36,20 +36,35 @@ jobs:
       - name: Smoke test
         shell: pwsh
         run: |
-          $exe = ".\build\native\Release\awfan.exe"
+          $root = ".\build\native\Release"
+          $exe = Join-Path $root "awfan.exe"
+          $broker = Join-Path $root "awfan-broker.exe"
+
           $version = (& $exe version | Out-String).Trim()
-          if ($version -ne "awfan 1.0.1") {
+          if ($version -ne "awfan 1.1.0") {
             throw "Unexpected version output: $version"
           }
 
           $help = (& $exe help | Out-String)
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($help -notmatch "awfan broker-status") {
+            throw "Broker commands are missing from help output."
+          }
           if ($help -notmatch "awfan update --check") {
             throw "Updater commands are missing from help output."
           }
 
           & $exe state --json | ConvertFrom-Json | Out-Null
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $brokerTest = Start-Process `
+            -FilePath $broker `
+            -ArgumentList "--self-test" `
+            -Wait `
+            -PassThru
+          if ($brokerTest.ExitCode -ne 0) {
+            throw "Broker self-test failed with exit code $($brokerTest.ExitCode)."
+          }
 
       - name: Package ZIP
         shell: pwsh
@@ -72,6 +87,8 @@ jobs:
 
           $required = @(
             "awfan.exe",
+            "awfan-core.exe",
+            "awfan-broker.exe",
             "install.ps1",
             "update.ps1",
             "uninstall.ps1",
@@ -94,17 +111,34 @@ jobs:
           . (Join-Path $packageRoot.FullName "awfan-completion.ps1")
 
           $installDir = Join-Path $env:RUNNER_TEMP "awfan-install-smoke"
-          & (Join-Path $packageRoot.FullName "install.ps1") -InstallDir $installDir -NoPath
+          & (Join-Path $packageRoot.FullName "install.ps1") `
+            -InstallDir $installDir `
+            -NoPath `
+            -NoBroker
+
           & (Join-Path $installDir "awfan.exe") version
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-          foreach ($file in @("LICENSE.txt", "update.ps1")) {
+          & (Join-Path $installDir "awfan.exe") state --json |
+            ConvertFrom-Json | Out-Null
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          foreach ($file in @(
+            "awfan-core.exe",
+            "awfan-broker.exe",
+            "LICENSE.txt",
+            "update.ps1"
+          )) {
             if (-not (Test-Path -LiteralPath (Join-Path $installDir $file))) {
               throw "The installed files are missing $file"
             }
           }
 
-          & (Join-Path $packageRoot.FullName "uninstall.ps1") -InstallDir $installDir -KeepState
+          & (Join-Path $packageRoot.FullName "uninstall.ps1") `
+            -InstallDir $installDir `
+            -KeepState `
+            -NoBroker
+
           if (Test-Path -LiteralPath $installDir) {
             throw "The temporary installation directory still exists after uninstall."
           }
@@ -114,11 +148,14 @@ jobs:
           "$($hash.Hash.ToLower())  $($zip.Name)" |
             Set-Content -Encoding ascii $checksum
 
-      - name: Upload executable
+      - name: Upload binaries
         uses: actions/upload-artifact@v4
         with:
           name: awfan-windows-x64
-          path: build/native/Release/awfan.exe
+          path: |
+            build/native/Release/awfan.exe
+            build/native/Release/awfan-core.exe
+            build/native/Release/awfan-broker.exe
           if-no-files-found: error
 
       - name: Upload package
