@@ -11,7 +11,7 @@
 
 namespace {
 
-constexpr wchar_t kVersion[] = L"1.1.2";
+constexpr wchar_t kVersion[] = L"1.2.0";
 
 void print_presets() {
     std::wcout
@@ -26,41 +26,13 @@ void print_presets() {
 
 void print_help() {
     std::wcout
-        << L"awfan " << kVersion << L"\n\n"
-        << L"Native C++20 Alienware fan-control CLI.\n\n"
+        << L"awfan-core " << kVersion << L"\n\n"
+        << L"Internal AWCC command implementation. Use awfan.exe directly.\n\n"
         << L"Read commands:\n"
-        << L"  awfan status [--json]\n"
-        << L"  awfan fans [--json]\n"
-        << L"  awfan temps [once|seconds] [--json]\n"
-        << L"  awfan watch [seconds]\n"
-        << L"  awfan profiles [--json]\n"
-        << L"  awfan presets\n"
-        << L"  awfan doctor [--json]\n"
-        << L"  awfan state [--json]\n\n"
-        << L"Control commands (experimental; --yes required):\n"
-        << L"  awfan boost <cpu-value> <gpu-value> --yes [--json]\n"
-        << L"  awfan max --yes [--json]\n"
-        << L"  awfan profile <1-5> --yes [--json]\n"
-        << L"  awfan auto <1-5> --yes [--json]\n\n"
-        << L"Updates:\n"
-        << L"  awfan update --check\n"
-        << L"  awfan update\n"
-        << L"  awfan update --force\n\n"
-        << L"Maintenance and diagnostics:\n"
-        << L"  awfan clear-state\n"
-        << L"  awfan raw-probe\n"
-        << L"  awfan exact-probe\n"
-        << L"  awfan probe [--namespace <path>] [--all] [--signatures]\n"
-        << L"  awfan inspect-awcc [--namespace <path>]\n"
-        << L"  awfan version\n\n"
-        << L"Important:\n"
-        << L"  - boost values are firmware fan-boost inputs, not target fan\n"
-        << L"    percentages or target RPM values.\n"
-        << L"  - boost enters manual control. Use profile/auto 1-5 to return to\n"
-        << L"    dynamic firmware control.\n"
-        << L"  - profile 0 is diagnostic-only because it did not reliably clear\n"
-        << L"    an existing manual boost on the tested system.\n"
-        << L"  - every hardware write is blocked unless --yes is supplied.\n";
+        << L"  status, fans, temps, watch, profiles, doctor, state\n"
+        << L"Control commands:\n"
+        << L"  boost, max, profile, auto\n"
+        << L"Every hardware write requires --yes.\n";
 }
 
 bool has_flag(int argc, wchar_t** argv, const std::wstring& flag) {
