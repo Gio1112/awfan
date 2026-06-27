@@ -1,0 +1,38 @@
+name: Fix 1.2.0 build
+
+on:
+  push:
+    branches:
+      - release/1.2.0-platform
+    paths:
+      - .github/workflows/fix-1.2.0-build.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.2.0-platform
+      - name: Fix stream construction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("native/src/platform_features.cpp")
+          text = path.read_text(encoding="utf-8")
+          old = "std::ifstream input(fs::path(broker_log_path()));"
+          new = "std::ifstream input{fs::path(broker_log_path())};"
+          if old not in text:
+              raise SystemExit("Expected stream construction not found")
+          path.write_text(text.replace(old, new), encoding="utf-8")
+          PY
+      - name: Commit build fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add native/src/platform_features.cpp
+          git commit -m "Fix broker log stream construction"
+          git push origin HEAD:release/1.2.0-platform
