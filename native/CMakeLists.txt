@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan VERSION 1.1.3 LANGUAGES CXX)
+project(awfan VERSION 1.2.0 LANGUAGES CXX)
 
 add_executable(awfan
     src/frontend_main.cpp
     src/broker.cpp
+    src/platform_features.cpp
     src/update.cpp
 )
 
@@ -21,6 +22,7 @@ add_executable(awfan-core
 add_executable(awfan-broker WIN32
     src/broker_main.cpp
     src/broker.cpp
+    src/platform_features.cpp
 )
 
 foreach(target awfan awfan-core awfan-broker)
@@ -34,7 +36,7 @@ foreach(target awfan awfan-core awfan-broker)
     )
 endforeach()
 
-target_link_libraries(awfan PRIVATE advapi32)
+target_link_libraries(awfan PRIVATE advapi32 shell32)
 target_link_libraries(awfan-core PRIVATE wbemuuid ole32 oleaut32)
 target_link_libraries(awfan-broker PRIVATE advapi32)
 
