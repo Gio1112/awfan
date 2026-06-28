@@ -152,6 +152,9 @@ awfan boost 20 20 --yes
 # Maximum boost
 awfan max --yes
 
+# Select manual profile 0 without applying a boost value
+awfan profile 0 --yes
+
 # Return to a discovered firmware profile
 awfan auto 1 --yes
 ```
@@ -166,7 +169,7 @@ Known profile mappings on the AC16251:
 | 4 | `0xA3` | Quiet |
 | 5 | `0xA4` | Performance |
 
-Profile `0` is intentionally diagnostic-only because it did not reliably clear an existing manual boost during testing.
+Profile `0` selects manual mode without applying or remembering a boost value. It remains diagnostic-only because it did not reliably clear an existing manual boost during testing.
 
 ## Command reference
 
@@ -183,8 +186,8 @@ Profile `0` is intentionally diagnostic-only because it did not reliably clear a
 | `awfan clear-state` | Clear remembered command and RPM history |
 | `awfan boost <cpu> <gpu> --yes` | Send raw manual fan-boost values |
 | `awfan max --yes` | Send maximum boost to both fans |
-| `awfan profile <1-5> --yes` | Select a discovered firmware profile |
-| `awfan auto <1-5> --yes` | Alias for `profile` |
+| `awfan profile <0-5> --yes` | Select manual profile 0 or a discovered firmware profile |
+| `awfan auto <1-5> --yes` | Select a discovered dynamic firmware profile |
 | `awfan broker-status` | Check whether the elevated broker is reachable |
 | `awfan update --check` | Check the latest stable GitHub release |
 | `awfan update` | Download, verify, and install the latest stable release |
@@ -258,11 +261,3 @@ The PowerShell implementation in `src/` and the root-level legacy files are reta
 ## Contributing
 
 Bug reports, compatibility results, documentation fixes, and carefully tested code contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
-
-Security problems should be reported privately according to [SECURITY.md](SECURITY.md), not through a public issue.
-
-## License and acknowledgements
-
-awfan is released under the [MIT License](LICENSE).
-
-Protocol research used public AWCC implementations as references. See [`native/package/THIRD-PARTY-NOTICES.txt`](native/package/THIRD-PARTY-NOTICES.txt) for attribution.
