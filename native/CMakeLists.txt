@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan VERSION 1.1.3 LANGUAGES CXX)
+project(awfan VERSION 1.1.4 LANGUAGES CXX)
 
 add_executable(awfan
     src/frontend_main.cpp
