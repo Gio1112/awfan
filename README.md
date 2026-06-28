@@ -261,3 +261,11 @@ The PowerShell implementation in `src/` and the root-level legacy files are reta
 ## Contributing
 
 Bug reports, compatibility results, documentation fixes, and carefully tested code contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request.
+
+Security problems should be reported privately according to [SECURITY.md](SECURITY.md), not through a public issue.
+
+## License and acknowledgements
+
+awfan is released under the [MIT License](LICENSE).
+
+Protocol research used public AWCC implementations as references. See [`native/package/THIRD-PARTY-NOTICES.txt`](native/package/THIRD-PARTY-NOTICES.txt) for attribution.
