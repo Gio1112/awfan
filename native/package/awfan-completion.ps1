@@ -48,7 +48,28 @@ Register-ArgumentCompleter -Native -CommandName awfan -ScriptBlock {
 
     $command = $tokens[1]
 
-    if ($command -in @('profile', 'auto') -and $tokens.Count -le 3) {
+    if ($command -eq 'profile' -and $tokens.Count -le 3) {
+        @('0', '1', '2', '3', '4', '5') |
+            Where-Object { $_ -like "$wordToComplete*" } |
+            ForEach-Object {
+                $description = if ($_ -eq '0') {
+                    'Manual profile index 0'
+                }
+                else {
+                    "Firmware profile index $_"
+                }
+
+                [System.Management.Automation.CompletionResult]::new(
+                    $_,
+                    $_,
+                    'ParameterValue',
+                    $description
+                )
+            }
+        return
+    }
+
+    if ($command -eq 'auto' -and $tokens.Count -le 3) {
         @('1', '2', '3', '4', '5') |
             Where-Object { $_ -like "$wordToComplete*" } |
             ForEach-Object {
