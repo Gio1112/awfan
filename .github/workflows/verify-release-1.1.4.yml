@@ -1,0 +1,45 @@
+name: Verify awfan 1.1.4 release
+
+on:
+  push:
+    paths:
+      - .github/workflows/verify-release-1.1.4.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify release assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
+            const expectedTag = 'v1.1.4';
+            const expectedAssets = [
+              'awfan-1.1.4-windows-x64.zip',
+              'awfan-1.1.4-windows-x64.sha256'
+            ];
+
+            if (release.tag_name !== expectedTag) {
+              core.setFailed(`Latest release is ${release.tag_name}, expected ${expectedTag}.`);
+              return;
+            }
+
+            const assetNames = new Set(release.assets.map((asset) => asset.name));
+            const missing = expectedAssets.filter((name) => !assetNames.has(name));
+            if (missing.length > 0) {
+              core.setFailed(`Missing release assets: ${missing.join(', ')}`);
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner,
+              repo,
+              title: 'awfan 1.1.4 release verified',
+              body: `Verified ${expectedTag} and both release assets. Temporary verification marker.`
+            });
