@@ -1,0 +1,101 @@
+name: Prepare awfan 1.1.4
+
+on:
+  push:
+    paths:
+      - .github/workflows/prepare-1.1.4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.1.4-hotfix
+          fetch-depth: 0
+
+      - name: Apply release metadata
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          Set-Content -LiteralPath VERSION -Value '1.1.4' -NoNewline
+
+          $cmake = Get-Content native/CMakeLists.txt -Raw
+          $cmake = $cmake -replace 'project\(awfan VERSION 1\.1\.3', 'project(awfan VERSION 1.1.4'
+          Set-Content native/CMakeLists.txt $cmake -NoNewline
+
+          foreach ($path in @('native/src/frontend_main.cpp', 'native/src/cli_main.cpp')) {
+            $text = Get-Content $path -Raw
+            $text = $text -replace 'constexpr wchar_t kVersion\[\] = L"1\.1\.[23]";', 'constexpr wchar_t kVersion[] = L"1.1.4";'
+            Set-Content $path $text -NoNewline
+          }
+
+          $probe = Get-Content .github/workflows/native-probe.yml -Raw
+          $probe = $probe -replace 'awfan 1\.1\.3', 'awfan 1.1.4'
+          Set-Content .github/workflows/native-probe.yml $probe -NoNewline
+
+          $release = Get-Content .github/workflows/native-release.yml -Raw
+          $release = $release -replace 'default: v1\.1\.3', 'default: v1.1.4'
+          Set-Content .github/workflows/native-release.yml $release -NoNewline
+
+          $readme = Get-Content native/package/README.txt -Raw
+          $readme = $readme -replace '^awfan 1\.1\.3', 'awfan 1.1.4'
+          Set-Content native/package/README.txt $readme -NoNewline
+
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $entry = @'
+          ## 1.1.4 — 2026-06-28
+
+          ### Fixed
+
+          - Allowed `awfan profile 0 --yes` to select the manual profile advertised by `awfan profiles`.
+          - Kept `awfan auto` restricted to dynamic firmware profiles 1 through 5.
+          - Updated CLI help, PowerShell completion, packaged documentation, and Windows parser regression tests.
+
+          '@
+          $changelog = $changelog -replace '(All notable public releases are documented here\.\r?\n\r?\n)', "`$1$entry"
+          Set-Content CHANGELOG.md $changelog -NoNewline
+
+          @'
+          awfan 1.1.4
+          ===========
+
+          Fixed
+          -----
+          - Allowed `awfan profile 0 --yes` to select the manual profile shown by
+            `awfan profiles`.
+          - Kept `awfan auto` restricted to dynamic firmware profiles 1 through 5.
+          - Updated CLI help, PowerShell completion, documentation, and Windows smoke
+            coverage for the profile parser.
+
+          Update
+          ------
+          Existing installations can install this release with:
+
+             awfan update
+          '@ | Set-Content native/package/CHANGELOG.txt -NoNewline
+
+          Remove-Item .github/workflows/prepare-1.1.4.yml
+
+          $remaining = git grep -n -E '1\.1\.2|1\.1\.3' -- VERSION native .github/workflows ':!native/package/CHANGELOG.txt'
+          if ($LASTEXITCODE -eq 0) {
+            throw "Stale release versions remain:`n$remaining"
+          }
+          if ($LASTEXITCODE -ne 1) {
+            throw "git grep failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Commit release metadata
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add VERSION CHANGELOG.md native .github/workflows
+          git commit -m "Prepare awfan 1.1.4"
+          git push origin HEAD:release/1.1.4-hotfix
+
+# release preparation retry after branch creation
