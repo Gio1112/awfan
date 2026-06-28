@@ -40,7 +40,7 @@ void print_help() {
         << L"Control commands (experimental; --yes required):\n"
         << L"  awfan boost <cpu-value> <gpu-value> --yes [--json]\n"
         << L"  awfan max --yes [--json]\n"
-        << L"  awfan profile <1-5> --yes [--json]\n"
+        << L"  awfan profile <0-5> --yes [--json]\n"
         << L"  awfan auto <1-5> --yes [--json]\n\n"
         << L"Updates:\n"
         << L"  awfan update --check\n"
@@ -271,9 +271,19 @@ int run_command(int argc, wchar_t** argv) {
         require_no_values(values, "max");
         return awfan::run_native_set_boost(100, 100, confirmed, json);
     }
-    if (command == L"profile" || command == L"auto") {
+    if (command == L"profile") {
         if (values.size() != 1) {
-            throw std::runtime_error("Usage: awfan profile <1-5> --yes");
+            throw std::runtime_error("Usage: awfan profile <0-5> --yes");
+        }
+        return awfan::run_native_set_profile(
+            parse_integer(values.front(), "profile index", 0, 5),
+            confirmed,
+            json
+        );
+    }
+    if (command == L"auto") {
+        if (values.size() != 1) {
+            throw std::runtime_error("Usage: awfan auto <1-5> --yes");
         }
         return awfan::run_native_set_profile(
             parse_integer(values.front(), "profile index", 1, 5),

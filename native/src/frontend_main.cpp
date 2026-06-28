@@ -240,7 +240,7 @@ void print_help() {
         << L"Control commands (experimental; --yes required):\n"
         << L"  awfan boost <cpu-value> <gpu-value> --yes [--json]\n"
         << L"  awfan max --yes [--json]\n"
-        << L"  awfan profile <1-5> --yes [--json]\n"
+        << L"  awfan profile <0-5> --yes [--json]\n"
         << L"  awfan auto <1-5> --yes [--json]\n\n"
         << L"Profile aliases:\n"
         << L"  awfan balanced --yes             Profile 1 / 0xA0\n"
