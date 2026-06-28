@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing or new release tag, for example v1.1.3
+        description: Existing or new release tag, for example v1.1.4
         required: true
-        default: v1.1.3
+        default: v1.1.4
         type: string
 
 permissions:
@@ -58,12 +58,17 @@ jobs:
         run: |
           $root = ".\build\native\Release"
           $exe = Join-Path $root "awfan.exe"
+          $core = Join-Path $root "awfan-core.exe"
           $broker = Join-Path $root "awfan-broker.exe"
           $expected = "awfan ${{ steps.version.outputs.version }}"
-          $actual = (& $exe version | Out-String).Trim()
+          $frontendVersion = (& $exe version | Out-String).Trim()
+          $coreVersion = (& $core version | Out-String).Trim()
 
-          if ($actual -ne $expected) {
-            throw "CLI version '$actual' does not match tag '$expected'."
+          if ($frontendVersion -ne $expected) {
+            throw "Frontend version '$frontendVersion' does not match tag '$expected'."
+          }
+          if ($coreVersion -ne $expected) {
+            throw "Core version '$coreVersion' does not match tag '$expected'."
           }
 
           & $exe help | Out-Null
