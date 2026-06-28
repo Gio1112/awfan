@@ -1,15 +1,35 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(awfan VERSION 1.1.3 LANGUAGES CXX)
+project(awfan VERSION 1.1.4 LANGUAGES CXX)
+
+set(AWFAN_GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${AWFAN_GENERATED_DIR}")
+
+foreach(source_name IN ITEMS frontend_main cli_main)
+    file(READ
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/${source_name}.cpp"
+        source_text
+    )
+    string(REGEX REPLACE
+        "constexpr wchar_t kVersion\\[\\] = L\"[0-9]+\\.[0-9]+\\.[0-9]+\";"
+        "constexpr wchar_t kVersion[] = L\"${PROJECT_VERSION}\";"
+        source_text
+        "${source_text}"
+    )
+    file(WRITE
+        "${AWFAN_GENERATED_DIR}/${source_name}.cpp"
+        "${source_text}"
+    )
+endforeach()
 
 add_executable(awfan
-    src/frontend_main.cpp
+    "${AWFAN_GENERATED_DIR}/frontend_main.cpp"
     src/broker.cpp
     src/update.cpp
 )
 
 add_executable(awfan-core
-    src/cli_main.cpp
+    "${AWFAN_GENERATED_DIR}/cli_main.cpp"
     src/update.cpp
     src/native_cli_release.cpp
     src/wmi_probe.cpp

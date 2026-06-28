@@ -1,40 +1,15 @@
-awfan 1.1.2
+awfan 1.1.4
 ===========
 
 Fixed
 -----
-- Removed retired v0.3 PowerShell files during installation so awfan.ps1 and
-  awfan.cmd can no longer shadow the native awfan.exe command.
-- Removed the old awfan Broker and awfan Updater scheduled tasks during
-  migration and uninstall.
-- Installed install.ps1 into the final awfan directory so the installation can
-  be repaired in place.
-- Made the installer safe to run from its own installed directory by skipping
-  source-to-destination self-copies.
-- Added migration tests for stale v0.3 files and repeated in-place installation.
+- Allowed awfan profile 0 --yes to select the manual profile shown by awfan profiles.
+- Kept awfan auto restricted to dynamic firmware profiles 1 through 5.
+- Updated CLI help, completion, documentation, and Windows parser tests.
+- Centralized frontend and core version generation through the CMake project version.
 
-Migration behavior
-------------------
-The installer now deletes these retired files when they are found in the target
-directory:
-
-  awfan.ps1
-  awfan.cmd
-  awfan-broker.ps1
-  awfan-updater.ps1
-  VERSION
-
-After updating, PowerShell should resolve awfan to awfan.exe rather than the
-retired 0.3 script.
-
-Repair
+Update
 ------
-A broker-enabled installation can be repaired with:
+Existing installations can install this release with:
 
-  & "C:\Program Files\awfan\install.ps1"
-
-Unchanged
----------
-- The secure elevated background broker remains enabled by default.
-- Release packages are verified with SHA-256 before update installation.
-- Every hardware-changing command still requires --yes.
+   awfan update

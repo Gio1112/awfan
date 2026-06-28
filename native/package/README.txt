@@ -1,4 +1,4 @@
-awfan 1.1.3
+awfan 1.1.4
 ===========
 
 Native C++20 Alienware fan and thermal CLI for Windows.

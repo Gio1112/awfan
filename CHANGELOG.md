@@ -2,6 +2,15 @@
 
 All notable public releases are documented here.
 
+## 1.1.4 — 2026-06-28
+
+### Fixed
+
+- Allowed `awfan profile 0 --yes` to select the manual profile advertised by `awfan profiles`.
+- Kept `awfan auto` restricted to dynamic firmware profiles 1 through 5.
+- Updated CLI help, PowerShell completion, packaged documentation, and Windows parser regression tests.
+- Centralized frontend and core version generation through the CMake project version so packaged binaries stay synchronized.
+
 ## 1.1.3 — 2026-06-27
 
 ### Added
