@@ -38,6 +38,7 @@ jobs:
         run: |
           $root = ".\build\native\Release"
           $exe = Join-Path $root "awfan.exe"
+          $core = Join-Path $root "awfan-core.exe"
           $broker = Join-Path $root "awfan-broker.exe"
 
           $version = (& $exe version | Out-String).Trim()
@@ -52,6 +53,21 @@ jobs:
           }
           if ($help -notmatch "awfan update --check") {
             throw "Updater commands are missing from help output."
+          }
+          if ($help -notmatch "awfan profile <0-5>") {
+            throw "Manual profile 0 is missing from help output."
+          }
+
+          $manualProfile = (& $core profile 0 2>&1 | Out-String)
+          if ($LASTEXITCODE -eq 0 -or
+              $manualProfile -notmatch "Hardware writes are blocked without --yes") {
+            throw "profile 0 was not accepted by the parser. Output: $manualProfile"
+          }
+
+          $automaticProfile = (& $core auto 0 2>&1 | Out-String)
+          if ($LASTEXITCODE -eq 0 -or
+              $automaticProfile -notmatch "profile index must be from 1 to 5") {
+            throw "auto 0 should remain invalid. Output: $automaticProfile"
           }
 
           foreach ($alias in @(
