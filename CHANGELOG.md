@@ -2,6 +2,15 @@
 
 All notable public releases are documented here.
 
+## 1.1.4 — 2026-06-28
+
+### Fixed
+
+- Allowed `awfan profile 0 --yes` to select the manual profile advertised by `awfan profiles`.
+- Kept `awfan auto` restricted to dynamic firmware profiles 1 through 5.
+- Updated CLI help, PowerShell completion, packaged documentation, and Windows parser regression tests.
+- Centralized frontend and core version generation through the CMake project version so packaged binaries stay synchronized.
+
 ## 1.1.3 — 2026-06-27
 
 ### Added
@@ -118,13 +127,3 @@ All notable public releases are documented here.
 ### Safety behavior
 
 - Manual boost values are reported as raw firmware inputs, not percentages or target RPM values.
-- Profile `0` is diagnostic-only because it did not reliably clear an existing manual boost on the tested AC16251.
-- Profiles `1` through `5` clear remembered manual boost values and return control to firmware.
-- The retired PowerShell updater and private-token setup are no longer part of the supported installation path.
-
-### Known limitations
-
-- Direct firmware fan-percentage reads return `-2` on the tested system.
-- Nominal RPM utilization is calculated from current RPM divided by the reported nominal maximum.
-- Live RPM may briefly exceed the firmware's reported nominal maximum.
-- Write support has been validated only on the Alienware 16X Aurora AC16251.
