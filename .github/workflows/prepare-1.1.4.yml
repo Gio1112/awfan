@@ -97,3 +97,5 @@ jobs:
           git add VERSION CHANGELOG.md native .github/workflows
           git commit -m "Prepare awfan 1.1.4"
           git push origin HEAD:release/1.1.4-hotfix
+
+# release preparation retry after branch creation
