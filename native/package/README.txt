@@ -98,7 +98,7 @@ Experimental control commands
 -----------------------------
    awfan boost <cpu-value> <gpu-value> --yes
    awfan max --yes
-   awfan profile <1-5> --yes
+   awfan profile <0-5> --yes
    awfan auto <1-5> --yes
 
 Named profile aliases
@@ -127,8 +127,9 @@ fan percentages and are not target RPM values. A boost command selects manual
 control. Use a discovered profile from 1 to 5 to return to dynamic firmware
 control.
 
-Run awfan profiles and awfan presets before changing profiles. Profile 0 is
-shown for diagnostics but is intentionally not accepted by the profile command.
+Run awfan profiles and awfan presets before changing profiles. Profile 0 selects
+manual mode without applying or remembering a boost value. It remains intended
+for diagnostics and may not clear an existing manual boost reliably.
 
 State
 -----
